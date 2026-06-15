@@ -632,7 +632,7 @@ function StageSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
       </div>
 
       {/* Stage rows */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="scrollbar-hide" style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {STAGES.map((stage) => (
           <div key={stage.number} style={{
             background: 'white',
