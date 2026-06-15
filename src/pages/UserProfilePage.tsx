@@ -1,0 +1,888 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { logError } from '../lib/errorLogger';
+import { useAuth } from '../context/AuthContext';
+import { BottomNav } from '../components/BottomNav';
+import { AppHeader } from '../components/AppHeader';
+import type { NavTab } from '../components/BottomNav';
+import type { Bill, UserVote, RepVote } from '../lib/types';
+
+type NavProps = {
+  activeTab: NavTab;
+  onTabChange: (tab: NavTab) => void;
+  onNavigateToProfile: () => void;
+  onNavigateToAdmin: () => void;
+};
+
+type VoteHistoryRow = UserVote & {
+  bills: Pick<Bill, 'title'> | null;
+  districtMajority: 'support' | 'oppose' | null;
+  repVote: 'support' | 'oppose' | null;
+};
+
+type UserStats = {
+  totalVotes: number;
+  withMajority: number;
+  districtAlignment: number | null;
+  repAlignment: number | null;
+};
+
+type UserProfilePageProps = {
+  onSignIn: () => void;
+  onNavigateToBill: (billId: string) => void;
+  onNavigateToAbout: () => void;
+  onNavigateToHowItWorks: () => void;
+  navProps: NavProps;
+};
+
+export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, navProps }: UserProfilePageProps) {
+  const { user, profile, districtName, districtUserIds } = useAuth();
+
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [history, setHistory] = useState<VoteHistoryRow[]>([]);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [priorities, setPriorities] = useState<{
+    priority_id: string;
+    bill_id: string | null;
+    priority_type: 'endorse' | 'block';
+    statement: string | null;
+    created_at: string;
+    bills: { title: string; status: string } | null;
+  }[]>([]);
+  const [prioritiesLoading, setPrioritiesLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const initials = profile?.username
+    ? profile.username.charAt(0).toUpperCase()
+    : '?';
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : null;
+
+  useEffect(() => {
+    if (!user) return;
+    loadStats();
+    loadHistory();
+    loadPriorities();
+  }, [user, profile?.district_id]);
+
+  async function loadStats() {
+    if (!user) return;
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      // Total votes
+      const { data: allVotes, error: allVotesErr } = await supabase
+        .from('user_votes')
+        .select('user_vote_id, bill_id, vote')
+        .eq('user_id', user.id);
+      if (allVotesErr) throw allVotesErr;
+
+      const totalVotes = allVotes?.length ?? 0;
+
+      if (totalVotes === 0) {
+        setStats({ totalVotes: 0, withMajority: 0, districtAlignment: null, repAlignment: null });
+        return;
+      }
+
+      const billIds = (allVotes ?? []).map((v) => v.bill_id!).filter(Boolean);
+
+      // Get district rep
+      let districtRepId: string | null = null;
+      if (profile?.district_id) {
+        const { data: repData } = await supabase
+          .from('representatives')
+          .select('representative_id')
+          .eq('district_id', profile.district_id)
+          .maybeSingle();
+        districtRepId = repData?.representative_id ?? null;
+      }
+
+      // Fetch rep votes first — used to filter district alignment and compute rep alignment
+      const repVoteMap = new Map<string, string>();
+      if (districtRepId) {
+        const { data: repVotes } = await supabase
+          .from('rep_votes')
+          .select('bill_id, vote')
+          .eq('representative_id', districtRepId)
+          .in('bill_id', billIds);
+        for (const rv of repVotes ?? []) {
+          if (rv.bill_id) repVoteMap.set(rv.bill_id, rv.vote);
+        }
+      }
+
+      // District alignment: only bills the rep also voted on
+      let withMajority = 0;
+      let majorityDeterminable = 0;
+
+      if (profile?.district_id && repVoteMap.size > 0) {
+        const districtIds =
+          districtUserIds.size > 0
+            ? districtUserIds
+            : new Set<string>();
+
+        if (districtIds.size > 0) {
+          const { data: districtVotes } = await supabase
+            .from('user_votes')
+            .select('bill_id, vote')
+            .in('user_id', [...districtIds])
+            .in('bill_id', billIds);
+
+          const districtVoteMap = new Map<string, { support: number; oppose: number }>();
+          for (const dv of districtVotes ?? []) {
+            if (!dv.bill_id) continue;
+            const existing = districtVoteMap.get(dv.bill_id) ?? { support: 0, oppose: 0 };
+            if (dv.vote === 'support') existing.support++;
+            else if (dv.vote === 'oppose') existing.oppose++;
+            districtVoteMap.set(dv.bill_id, existing);
+          }
+
+          for (const uv of allVotes ?? []) {
+            if (!uv.bill_id) continue;
+            if (!repVoteMap.has(uv.bill_id)) continue;
+            const tally = districtVoteMap.get(uv.bill_id);
+            if (!tally) continue;
+            const total = tally.support + tally.oppose;
+            if (total < 2) continue;
+            if (tally.support === tally.oppose) continue;
+            majorityDeterminable++;
+            const majorityPosition = tally.support > tally.oppose ? 'support' : 'oppose';
+            if (uv.vote === majorityPosition) withMajority++;
+          }
+        }
+      }
+
+      // Rep alignment
+      let repAlignmentBills = 0;
+      let repMatches = 0;
+
+      for (const uv of allVotes ?? []) {
+        if (!uv.bill_id) continue;
+        const rv = repVoteMap.get(uv.bill_id);
+        if (!rv) continue;
+        repAlignmentBills++;
+        if (uv.vote === rv) repMatches++;
+      }
+
+      setStats({
+        totalVotes,
+        withMajority,
+        districtAlignment: majorityDeterminable > 0 ? Math.round((withMajority / majorityDeterminable) * 100) : null,
+        repAlignment: repAlignmentBills > 0 ? Math.round((repMatches / repAlignmentBills) * 100) : null,
+      });
+    } catch (err) {
+      const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
+      logError({ action: 'calculate_user_stats', userId: user.id, errorMessage: msg });
+      setStatsError("We couldn't load your stats right now.");
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  async function loadHistory() {
+    if (!user) return;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const { data: votes, error: votesErr } = await supabase
+        .from('user_votes')
+        .select('*, bills(title)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (votesErr) throw votesErr;
+
+      if (!votes || votes.length === 0) {
+        setHistory([]);
+        return;
+      }
+
+      const billIds = votes.map((v) => v.bill_id!).filter(Boolean);
+
+      // District majority per bill
+      const districtMajorityMap = new Map<string, 'support' | 'oppose' | null>();
+      if (profile?.district_id) {
+        const districtIds =
+          districtUserIds.size > 0
+            ? districtUserIds
+            : new Set<string>();
+
+        if (districtIds.size > 0) {
+          const { data: districtVotes } = await supabase
+            .from('user_votes')
+            .select('bill_id, vote')
+            .in('user_id', [...districtIds])
+            .in('bill_id', billIds);
+
+          const tallyMap = new Map<string, { support: number; oppose: number }>();
+          for (const dv of districtVotes ?? []) {
+            if (!dv.bill_id) continue;
+            const t = tallyMap.get(dv.bill_id) ?? { support: 0, oppose: 0 };
+            if (dv.vote === 'support') t.support++;
+            else if (dv.vote === 'oppose') t.oppose++;
+            tallyMap.set(dv.bill_id, t);
+          }
+
+          for (const [billId, tally] of tallyMap) {
+            const total = tally.support + tally.oppose;
+            if (total < 2 || tally.support === tally.oppose) {
+              districtMajorityMap.set(billId, null);
+            } else {
+              districtMajorityMap.set(billId, tally.support > tally.oppose ? 'support' : 'oppose');
+            }
+          }
+        }
+      }
+
+      // Rep votes per bill
+      const repVoteMap = new Map<string, 'support' | 'oppose'>();
+      if (profile?.district_id) {
+        const { data: repData } = await supabase
+          .from('representatives')
+          .select('representative_id')
+          .eq('district_id', profile.district_id)
+          .maybeSingle();
+
+        if (repData?.representative_id) {
+          const { data: repVotes } = await supabase
+            .from('rep_votes')
+            .select('bill_id, vote')
+            .eq('representative_id', repData.representative_id)
+            .in('bill_id', billIds);
+
+          for (const rv of repVotes ?? []) {
+            if (rv.bill_id && (rv.vote === 'support' || rv.vote === 'oppose')) {
+              repVoteMap.set(rv.bill_id, rv.vote);
+            }
+          }
+        }
+      }
+
+      const enriched: VoteHistoryRow[] = votes.map((v) => ({
+        ...v,
+        bills: (v as typeof v & { bills: Pick<Bill, 'title'> | null }).bills,
+        districtMajority: districtMajorityMap.get(v.bill_id!) ?? null,
+        repVote: repVoteMap.get(v.bill_id!) ?? null,
+      }));
+
+      setHistory(enriched);
+    } catch (err) {
+      const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
+      logError({ action: 'load_voting_history', userId: user.id, errorMessage: msg });
+      setHistoryError("We couldn't load your voting history right now.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function extractMsg(err: unknown): string {
+    return (err as { message?: string })?.message ??
+      (err instanceof Error ? err.message : null) ??
+      String(err);
+  }
+
+  async function loadPriorities() {
+    if (!user) return;
+    setPrioritiesLoading(true);
+    const { data } = await supabase
+      .from('bill_priorities')
+      .select('priority_id, bill_id, priority_type, statement, created_at, bills(title, status)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    setPriorities((data ?? []) as typeof priorities);
+    setPrioritiesLoading(false);
+  }
+
+  async function handleRemovePriority(priorityId: string) {
+    setRemovingId(priorityId);
+    try {
+      await supabase
+        .from('bill_priorities')
+        .delete()
+        .eq('priority_id', priorityId);
+      await loadPriorities();
+    } catch (err) {
+      logError({
+        action: 'remove_priority',
+        userId: user?.id ?? null,
+        errorMessage: extractMsg(err),
+      });
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      onSignIn();
+    } catch (err) {
+      const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
+      logError({ action: 'sign_out', userId: user?.id ?? null, errorMessage: msg });
+      setSignOutError('Sign out failed. Please try again.');
+    }
+  }
+
+  if (!user || !profile) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
+      <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+
+        <div
+          className="scrollbar-hide"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 10,
+            paddingBottom: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+      {/* ── SECTION 1: HEADER CARD ── */}
+      <div style={{
+        background: '#1B4332',
+        borderRadius: 12,
+        padding: '16px 14px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}>
+        {/* Avatar */}
+        <div style={{
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          background: '#F5A623',
+          color: '#7A4F00',
+          fontSize: 16,
+          fontWeight: 900,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {initials}
+        </div>
+
+        {/* Text stack */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <p style={{
+            fontSize: 16, fontWeight: 900, color: 'white', lineHeight: 1.2, margin: 0,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {profile.username}
+          </p>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3, margin: 0 }}>
+            {districtName ? `${districtName} · Philadelphia City Council` : 'Philadelphia City Council'}
+          </p>
+          {memberSince && (
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3, margin: 0 }}>
+              Member since {memberSince}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* ── SECTION 2: ALIGNMENT STATS ── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid #E2E8E4',
+        overflow: 'visible',
+      }}>
+        {statsLoading ? (
+          <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span
+                  key={delay}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : statsError ? (
+          <div style={{ padding: 16, textAlign: 'center' }}>
+            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>{statsError}</p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 8,
+            padding: 12,
+          }}>
+            <StatCard
+              value={stats?.totalVotes ?? 0}
+              label="Bills Voted On"
+              bg="#F4F6F0"
+              numColor="#0f1724"
+              labelColor="#64748b"
+            />
+            <StatCard
+              value={stats?.withMajority ?? 0}
+              label="With Majority"
+              bg="#F4F6F0"
+              numColor="#0f1724"
+              labelColor="#64748b"
+            />
+            <StatCard
+              value={stats?.districtAlignment !== null ? `${stats!.districtAlignment}%` : '—'}
+              label="District Alignment"
+              bg="#E8F0EB"
+              numColor="#1B4332"
+              labelColor="#1B4332"
+            />
+            <StatCard
+              value={stats?.repAlignment !== null ? `${stats!.repAlignment}%` : '—'}
+              label="Rep Alignment"
+              bg="#FFF3D6"
+              numColor="#7A4F00"
+              labelColor="#7A4F00"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ── SECTION 3: YOUR PRIORITIES ── */}
+      {(() => {
+        const activePriorities = priorities.filter(p => p.bills?.status === 'active');
+        const activeEndorsements = activePriorities.filter(p => p.priority_type === 'endorse').length;
+        const activeBlocks = activePriorities.filter(p => p.priority_type === 'block').length;
+        const MAX_SLOTS = 3;
+        return (
+          <div style={{
+            background: 'white',
+            borderRadius: 12,
+            border: '1px solid #E2E8E4',
+            overflow: 'visible',
+          }}>
+            <div style={{
+              padding: '12px 14px 6px',
+              borderBottom: '1px solid #F4F6F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.8px',
+                color: '#94a3b8',
+              }}>
+                Your Priorities
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{
+                  background: '#E8F0EB',
+                  color: '#1B4332',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 10,
+                  marginLeft: 4,
+                }}>
+                  {activeEndorsements}/{MAX_SLOTS} Endorse
+                </span>
+                <span style={{
+                  background: '#FEF0EF',
+                  color: '#c0392b',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 10,
+                  marginLeft: 4,
+                }}>
+                  {activeBlocks}/{MAX_SLOTS} Block
+                </span>
+              </div>
+            </div>
+
+            {prioritiesLoading ? (
+              <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+                <div className="flex gap-1.5">
+                  {[0, 150, 300].map((delay) => (
+                    <span
+                      key={delay}
+                      className="w-1.5 h-1.5 rounded-full animate-bounce"
+                      style={{ background: '#1B4332', animationDelay: `${delay}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : priorities.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center' }}>
+                <i className="fa-solid fa-circle-check" style={{ fontSize: 22, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
+                <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                  You haven't endorsed or blocked any bills yet.
+                </p>
+              </div>
+            ) : (
+              priorities.map((p, i) => {
+                const isActive = p.bills?.status === 'active';
+                const isRemoving = removingId === p.priority_id;
+                const isLast = i === priorities.length - 1;
+                const statusLabel = p.bills?.status
+                  ? p.bills.status.charAt(0).toUpperCase() + p.bills.status.slice(1)
+                  : null;
+                return (
+                  <div
+                    key={p.priority_id}
+                    style={{
+                      padding: '11px 14px',
+                      borderBottom: isLast ? 'none' : '1px solid #F4F6F0',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: 10,
+                          background: p.priority_type === 'endorse' ? '#E6F5EE' : '#FEF0EF',
+                          color: p.priority_type === 'endorse' ? '#0e6b4a' : '#c0392b',
+                        }}>
+                          {p.priority_type === 'endorse' ? 'Endorsed' : 'Blocked'}
+                        </span>
+                        {!isActive && statusLabel && (
+                          <span style={{
+                            background: '#F1F5F9',
+                            color: '#475569',
+                            fontSize: 9,
+                            fontWeight: 600,
+                            padding: '2px 7px',
+                            borderRadius: 10,
+                          }}>
+                            {statusLabel} — (slot free)
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => p.bill_id && onNavigateToBill(p.bill_id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          textAlign: 'left',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#0f1724',
+                          lineHeight: 1.35,
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          cursor: 'pointer',
+                          display: 'block',
+                          minHeight: 'unset',
+                        }}
+                      >
+                        {p.bills?.title ?? 'Untitled Bill'}
+                      </button>
+                      {p.statement && (
+                        <p style={{
+                          fontSize: 11,
+                          color: '#64748b',
+                          fontStyle: 'italic',
+                          lineHeight: 1.5,
+                          margin: 0,
+                          wordBreak: 'break-word',
+                        }}>
+                          {p.statement}
+                        </p>
+                      )}
+                    </div>
+                    {isActive && (
+                      <button
+                        onClick={() => handleRemovePriority(p.priority_id)}
+                        disabled={isRemoving}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#94a3b8',
+                          textDecoration: 'underline',
+                          cursor: isRemoving ? 'default' : 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isRemoving ? '...' : 'Remove'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── SECTION 4: VOTING HISTORY ── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid #E2E8E4',
+        overflow: 'visible',
+      }}>
+        <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0' }}>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            color: '#94a3b8',
+          }}>
+            Your Votes
+          </span>
+        </div>
+
+        {historyLoading ? (
+          <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span
+                  key={delay}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : historyError ? (
+          <div style={{ padding: 16, textAlign: 'center' }}>
+            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>{historyError}</p>
+          </div>
+        ) : history.length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center' }}>
+            <i className="fa-solid fa-check-to-slot" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+              You haven't voted on any bills yet.
+            </p>
+          </div>
+        ) : (
+          history.map((row, i) => (
+            <VoteHistoryRowItem
+              key={row.user_vote_id}
+              row={row}
+              isLast={i === history.length - 1}
+              onNavigateToBill={onNavigateToBill}
+            />
+          ))
+        )}
+      </div>
+
+      {/* ── SECTION 5: ACCOUNT ── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid #E2E8E4',
+        padding: 14,
+      }}>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          color: '#94a3b8',
+          display: 'block',
+          marginBottom: 4,
+        }}>
+          Email
+        </span>
+        <p style={{ fontSize: 13, color: '#0f1724', margin: 0 }}>{profile.email}</p>
+
+        <div style={{ height: 1, background: '#F4F6F0', margin: '12px 0' }} />
+
+        <button
+          onClick={onNavigateToAbout}
+          style={{
+            display: 'block', fontSize: 13, color: '#1B4332', fontWeight: 700,
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            marginBottom: 12, textAlign: 'left',
+          }}
+        >
+          About UVote
+        </button>
+
+        {signOutError && (
+          <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600, marginBottom: 8, textAlign: 'center' }}>
+            {signOutError}
+          </p>
+        )}
+
+        <button
+          onClick={handleSignOut}
+          style={{
+            width: '100%',
+            background: 'white',
+            color: '#F0455A',
+            border: '1.5px solid #F0455A',
+            borderRadius: 10,
+            padding: 12,
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          Sign Out
+        </button>
+        </div>
+        </div>
+        <BottomNav {...navProps} />
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  value,
+  label,
+  bg,
+  numColor,
+  labelColor,
+}: {
+  value: number | string;
+  label: string;
+  bg: string;
+  numColor: string;
+  labelColor: string;
+}) {
+  return (
+    <div style={{
+      background: bg,
+      borderRadius: 8,
+      padding: 10,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      textAlign: 'center',
+    }}>
+      <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1, color: numColor }}>
+        {value}
+      </span>
+      <span style={{ fontSize: 10, fontWeight: 600, color: labelColor, marginTop: 4, lineHeight: 1.3 }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function VoteHistoryRowItem({
+  row,
+  isLast,
+  onNavigateToBill,
+}: {
+  row: VoteHistoryRow;
+  isLast: boolean;
+  onNavigateToBill: (billId: string) => void;
+}) {
+  const billTitle = (row as typeof row & { bills: { title: string } | null }).bills?.title ?? 'Untitled Bill';
+  const isSupport = row.vote === 'support';
+
+  return (
+    <div style={{
+      padding: '11px 14px',
+      borderBottom: isLast ? 'none' : '1px solid #F4F6F0',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10,
+    }}>
+      {/* Left: bill title */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <button
+          onClick={() => row.bill_id && onNavigateToBill(row.bill_id)}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            textAlign: 'left',
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#0f1724',
+            lineHeight: 1.35,
+            marginBottom: 5,
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            cursor: 'pointer',
+            display: 'block',
+            minHeight: 'unset',
+          }}
+        >
+          {billTitle}
+        </button>
+      </div>
+
+      {/* Right: pills */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 3,
+      }}>
+        {/* Your vote pill */}
+        <span style={{
+          background: isSupport ? '#E8F0EB' : '#FEF0EF',
+          color: isSupport ? '#1B4332' : '#c0392b',
+          fontSize: 10,
+          fontWeight: 700,
+          padding: '3px 8px',
+          borderRadius: 6,
+          whiteSpace: 'nowrap',
+        }}>
+          You: {isSupport ? 'Supported' : 'Opposed'}
+        </span>
+
+        {/* Majority pill */}
+        {row.districtMajority && (
+          <span style={{
+            background: '#FFF3D6',
+            color: '#7A4F00',
+            fontSize: 9,
+            fontWeight: 600,
+            padding: '2px 7px',
+            borderRadius: 6,
+            whiteSpace: 'nowrap',
+          }}>
+            Majority: {row.districtMajority === 'support' ? 'Support' : 'Oppose'}
+          </span>
+        )}
+
+        {/* Rep vote pill */}
+        {row.repVote && (
+          <span style={{
+            background: row.repVote === row.vote ? '#F1F5F9' : '#FEF0EF',
+            color: row.repVote === row.vote ? '#475569' : '#c0392b',
+            fontSize: 9,
+            fontWeight: 600,
+            padding: '2px 7px',
+            borderRadius: 6,
+            whiteSpace: 'nowrap',
+          }}>
+            Rep: {row.repVote === 'support' ? 'Supported' : 'Opposed'}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
