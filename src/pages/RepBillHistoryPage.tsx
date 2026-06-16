@@ -250,6 +250,8 @@ export function RepBillHistoryPage({
         borderBottom: '1px solid #E2E8E4',
         padding: '10px 14px',
         flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {rep ? (
           <>

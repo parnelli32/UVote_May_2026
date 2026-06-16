@@ -312,6 +312,8 @@ export function UserVotingHistoryPage({
         borderBottom: '1px solid #E2E8E4',
         padding: '10px 14px',
         flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', margin: 0, lineHeight: 1.3 }}>
           My Voting Record
