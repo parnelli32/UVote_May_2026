@@ -32,10 +32,11 @@ type UserProfilePageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToAbout: () => void;
   onNavigateToHowItWorks: () => void;
+  onNavigateToUserVotingHistory: () => void;
   navProps: NavProps;
 };
 
-export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, navProps }: UserProfilePageProps) {
+export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToUserVotingHistory, navProps }: UserProfilePageProps) {
   const { user, profile, districtName, districtUserIds } = useAuth();
 
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -659,34 +660,96 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
           <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
             <div className="flex gap-1.5">
               {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }}
-                />
+                <span key={delay} className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }} />
               ))}
             </div>
           </div>
         ) : historyError ? (
           <div style={{ padding: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>{historyError}</p>
+            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>
+              {historyError}
+            </p>
           </div>
         ) : history.length === 0 ? (
           <div style={{ padding: 24, textAlign: 'center' }}>
-            <i className="fa-solid fa-check-to-slot" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
+            <i className="fa-solid fa-check-to-slot" style={{ fontSize: 22, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
             <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
               You haven't voted on any bills yet.
             </p>
           </div>
         ) : (
-          history.map((row, i) => (
-            <VoteHistoryRowItem
-              key={row.user_vote_id}
-              row={row}
-              isLast={i === history.length - 1}
-              onNavigateToBill={onNavigateToBill}
-            />
-          ))
+          <>
+            {history.slice(0, 3).map((row) => {
+              const billTitle = row.bills?.title ?? 'Untitled Bill';
+              const isSupport = row.vote === 'support';
+              return (
+                <div
+                  key={row.user_vote_id}
+                  style={{
+                    padding: '10px 14px',
+                    borderBottom: '1px solid #F4F6F0',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                  }}
+                >
+                  <button
+                    onClick={() => row.bill_id && onNavigateToBill(row.bill_id)}
+                    style={{
+                      flex: 1,
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#0f1724',
+                      lineHeight: 1.35,
+                      cursor: 'pointer',
+                      minHeight: 'unset',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      display: 'block',
+                    }}
+                  >
+                    {billTitle}
+                  </button>
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    flexShrink: 0,
+                    background: isSupport ? '#E8F0EB' : '#FEF0EF',
+                    color: isSupport ? '#1B4332' : '#c0392b',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {isSupport ? 'Supported' : 'Opposed'}
+                  </span>
+                </div>
+              );
+            })}
+            <div style={{ padding: '10px 14px', borderTop: '1px solid #F4F6F0' }}>
+              <button
+                onClick={onNavigateToUserVotingHistory}
+                style={{
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px 0',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#1B4332',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                See my full voting record →
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -782,107 +845,6 @@ function StatCard({
       <span style={{ fontSize: 10, fontWeight: 600, color: labelColor, marginTop: 4, lineHeight: 1.3 }}>
         {label}
       </span>
-    </div>
-  );
-}
-
-function VoteHistoryRowItem({
-  row,
-  isLast,
-  onNavigateToBill,
-}: {
-  row: VoteHistoryRow;
-  isLast: boolean;
-  onNavigateToBill: (billId: string) => void;
-}) {
-  const billTitle = (row as typeof row & { bills: { title: string } | null }).bills?.title ?? 'Untitled Bill';
-  const isSupport = row.vote === 'support';
-
-  return (
-    <div style={{
-      padding: '11px 14px',
-      borderBottom: isLast ? 'none' : '1px solid #F4F6F0',
-      display: 'flex',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: 10,
-    }}>
-      {/* Left: bill title */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <button
-          onClick={() => row.bill_id && onNavigateToBill(row.bill_id)}
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            textAlign: 'left',
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#0f1724',
-            lineHeight: 1.35,
-            marginBottom: 5,
-            whiteSpace: 'normal',
-            wordBreak: 'break-word',
-            cursor: 'pointer',
-            display: 'block',
-            minHeight: 'unset',
-          }}
-        >
-          {billTitle}
-        </button>
-      </div>
-
-      {/* Right: pills */}
-      <div style={{
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: 3,
-      }}>
-        {/* Your vote pill */}
-        <span style={{
-          background: isSupport ? '#E8F0EB' : '#FEF0EF',
-          color: isSupport ? '#1B4332' : '#c0392b',
-          fontSize: 10,
-          fontWeight: 700,
-          padding: '3px 8px',
-          borderRadius: 6,
-          whiteSpace: 'nowrap',
-        }}>
-          You: {isSupport ? 'Supported' : 'Opposed'}
-        </span>
-
-        {/* Majority pill */}
-        {row.districtMajority && (
-          <span style={{
-            background: '#FFF3D6',
-            color: '#7A4F00',
-            fontSize: 9,
-            fontWeight: 600,
-            padding: '2px 7px',
-            borderRadius: 6,
-            whiteSpace: 'nowrap',
-          }}>
-            Majority: {row.districtMajority === 'support' ? 'Support' : 'Oppose'}
-          </span>
-        )}
-
-        {/* Rep vote pill */}
-        {row.repVote && (
-          <span style={{
-            background: row.repVote === row.vote ? '#F1F5F9' : '#FEF0EF',
-            color: row.repVote === row.vote ? '#475569' : '#c0392b',
-            fontSize: 9,
-            fontWeight: 600,
-            padding: '2px 7px',
-            borderRadius: 6,
-            whiteSpace: 'nowrap',
-          }}>
-            Rep: {row.repVote === 'support' ? 'Supported' : 'Opposed'}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
