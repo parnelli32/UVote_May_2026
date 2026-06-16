@@ -9,6 +9,8 @@ import { UserProfilePage } from './pages/UserProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AboutPage } from './pages/AboutPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
+import { RepBillHistoryPage } from './pages/RepBillHistoryPage';
+import { UserVotingHistoryPage } from './pages/UserVotingHistoryPage';
 import { OnboardingGuide } from './components/OnboardingGuide';
 import { supabase } from './lib/supabase';
 import { PHILLY_COUNCIL_BODY_ID } from './data/legislativeGuides';
@@ -23,7 +25,9 @@ type Route =
   | { name: 'profile' }
   | { name: 'admin' }
   | { name: 'about' }
-  | { name: 'howItWorks' };
+  | { name: 'howItWorks' }
+  | { name: 'repHistory'; repId: string }
+  | { name: 'userVotingHistory' };
 
 function parseInitialRoute(): Route {
   const path = window.location.pathname;
@@ -58,6 +62,10 @@ function AppInner() {
       window.history.pushState({}, '', '/about');
     } else if (route.name === 'howItWorks') {
       window.history.pushState({}, '', '/how-it-works');
+    } else if (route.name === 'repHistory') {
+      window.history.pushState({}, '', `/rep/${route.repId}/history`);
+    } else if (route.name === 'userVotingHistory') {
+      window.history.pushState({}, '', '/profile/history');
     } else {
       window.history.pushState({}, '', '/');
     }
@@ -96,6 +104,14 @@ function AppInner() {
 
   function navigateToHowItWorks() {
     setRoute({ name: 'howItWorks' });
+  }
+
+  function navigateToRepHistory(repId: string) {
+    setRoute({ name: 'repHistory', repId });
+  }
+
+  function navigateToUserVotingHistory() {
+    setRoute({ name: 'userVotingHistory' });
   }
 
   useEffect(() => {
@@ -189,6 +205,20 @@ function AppInner() {
         onNavigateToRep={navigateToRep}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToRepHistory={() => navigateToRepHistory(route.repId)}
+        navProps={user ? navProps : undefined}
+      />
+    );
+  }
+
+  if (route.name === 'repHistory') {
+    return (
+      <RepBillHistoryPage
+        repId={route.repId}
+        onBack={() => navigateToRep(route.repId)}
+        onNavigateToBill={navigateToBill}
+        onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToAbout={navigateToAbout}
         navProps={user ? navProps : undefined}
       />
     );
@@ -238,6 +268,22 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToAbout={navigateToAbout}
         onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToUserVotingHistory={navigateToUserVotingHistory}
+        navProps={navProps}
+      />
+    );
+  }
+
+  if (route.name === 'userVotingHistory') {
+    return (
+      <UserVotingHistoryPage
+        onBack={() => {
+          setRoute({ name: 'profile' });
+          setActiveTab('profile');
+        }}
+        onNavigateToBill={navigateToBill}
+        onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToAbout={navigateToAbout}
         navProps={navProps}
       />
     );
