@@ -258,7 +258,7 @@ export function RepBillHistoryPage({
             <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', margin: 0, lineHeight: 1.3 }}>
               {rep.first_name} {rep.last_name}
             </p>
-            <p style={{ fontSize: 11, color: '#94a3b8', margin: 0, marginTop: 2 }}>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0, marginTop: 2 }}>
               {bills.length} vote{bills.length !== 1 ? 's' : ''} on record
             </p>
           </>
@@ -285,7 +285,7 @@ export function RepBillHistoryPage({
             padding: '7px 12px',
             border: '1px solid #E2E8E4',
             borderRadius: 20,
-            fontSize: 12,
+            fontSize: 13,
             color: '#374151',
             background: '#F4F6F0',
             outline: 'none',
@@ -306,7 +306,7 @@ export function RepBillHistoryPage({
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: '4px 10px',
               border: '1px solid #E2E8E4',
               borderRadius: 20,
@@ -328,7 +328,7 @@ export function RepBillHistoryPage({
             value={voteFilter}
             onChange={(e) => setVoteFilter(e.target.value as typeof voteFilter)}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: '4px 10px',
               border: '1px solid #E2E8E4',
               borderRadius: 20,
@@ -349,7 +349,7 @@ export function RepBillHistoryPage({
             value={alignFilter}
             onChange={(e) => setAlignFilter(e.target.value as typeof alignFilter)}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: '4px 10px',
               border: '1px solid #E2E8E4',
               borderRadius: 20,
@@ -371,7 +371,7 @@ export function RepBillHistoryPage({
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             style={{
-              fontSize: 11,
+              fontSize: 13,
               padding: '4px 10px',
               border: '1px solid #E2E8E4',
               borderRadius: 20,
@@ -390,7 +390,7 @@ export function RepBillHistoryPage({
           </select>
 
           <span style={{
-            fontSize: 11,
+            fontSize: 13,
             color: '#94a3b8',
             whiteSpace: 'nowrap',
             marginLeft: 'auto',
@@ -419,17 +419,17 @@ export function RepBillHistoryPage({
         ) : error ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
-            <p style={{ fontSize: 11, color: '#64748b' }}>{error}</p>
+            <p style={{ fontSize: 13, color: '#64748b' }}>{error}</p>
           </div>
         ) : filtered.length === 0 && hasActiveFilters ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <i className="fa-solid fa-filter-circle-xmark" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No bills match these filters.</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No bills match these filters.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <i className="fa-solid fa-file-lines" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No votes recorded yet.</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No votes recorded yet.</p>
           </div>
         ) : (
           <div style={{ background: 'white', borderRadius: 12, margin: 10, border: '1px solid #E2E8E4', overflow: 'hidden' }}>
