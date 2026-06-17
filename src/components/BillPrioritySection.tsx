@@ -203,7 +203,7 @@ export function BillPrioritySection({
     }}>
       <span style={{
         display: 'block',
-        fontSize: 9,
+        fontSize: 11,
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: '0.8px',
@@ -223,7 +223,7 @@ export function BillPrioritySection({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               padding: '3px 9px',
               borderRadius: 10,
@@ -232,7 +232,7 @@ export function BillPrioritySection({
             }}>
               {userPriority === 'endorse' ? 'Endorsed' : 'Blocked'}
             </span>
-            <span style={{ fontSize: 11, color: '#64748b' }}>
+            <span style={{ fontSize: 13, color: '#64748b' }}>
               You've marked this bill as a priority.
             </span>
           </div>
@@ -244,7 +244,7 @@ export function BillPrioritySection({
               marginTop: 8,
             }}>
               <p style={{
-                fontSize: 11,
+                fontSize: 13,
                 color: '#374151',
                 fontStyle: 'italic',
                 lineHeight: 1.5,
@@ -263,7 +263,7 @@ export function BillPrioritySection({
               border: 'none',
               padding: 0,
               marginTop: 10,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               color: '#94a3b8',
               textDecoration: 'underline',
@@ -277,7 +277,7 @@ export function BillPrioritySection({
       ) : showInput ? (
         /* ── STATEMENT INPUT ── */
         <div>
-          <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, marginBottom: 8 }}>
+          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, marginBottom: 8 }}>
             {pendingType === 'endorse'
               ? 'Add a public statement about why this is your priority (optional). Your statement may be shared with your representative.'
               : 'Add a public statement about why you want this bill stopped (optional). Your statement may be shared with your representative.'}
@@ -295,16 +295,16 @@ export function BillPrioritySection({
               border: '1px solid #E2E8E4',
               borderRadius: 8,
               padding: '9px 11px',
-              fontSize: 12,
+              fontSize: 13,
               color: '#0f1724',
               boxSizing: 'border-box',
             }}
           />
-          <p style={{ textAlign: 'right', fontSize: 10, color: '#94a3b8', margin: '2px 0 10px' }}>
+          <p style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', margin: '2px 0 10px' }}>
             {statement.length} / {MAX_STATEMENT_CHARS}
           </p>
           {submitError && (
-            <p style={{ fontSize: 11, color: '#c0392b', fontWeight: 700, marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#c0392b', fontWeight: 700, marginBottom: 8 }}>
               {submitError}
             </p>
           )}
@@ -318,7 +318,7 @@ export function BillPrioritySection({
               border: 'none',
               borderRadius: 8,
               padding: 11,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               marginBottom: 6,
               opacity: submitting ? 0.6 : 1,
@@ -335,7 +335,7 @@ export function BillPrioritySection({
               border: '1px solid #E2E8E4',
               borderRadius: 8,
               padding: 11,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
             }}
           >
@@ -346,7 +346,7 @@ export function BillPrioritySection({
         /* ── PRIORITY BUTTON ── */
         <div>
           {submitError && (
-            <p style={{ fontSize: 11, color: '#c0392b', fontWeight: 700, marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: '#c0392b', fontWeight: 700, marginBottom: 8 }}>
               {submitError}
             </p>
           )}
@@ -361,7 +361,7 @@ export function BillPrioritySection({
                 border: '1.5px solid #1B4332',
                 borderRadius: 8,
                 padding: 12,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
                 opacity: endorseSlotsUsed >= MAX_SLOTS ? 0.5 : 1,
               }}
@@ -383,7 +383,7 @@ export function BillPrioritySection({
                 border: '1.5px solid #F0455A',
                 borderRadius: 8,
                 padding: 12,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
                 opacity: blockSlotsUsed >= MAX_SLOTS ? 0.5 : 1,
               }}
@@ -403,7 +403,7 @@ export function BillPrioritySection({
           <div style={{ height: 1, background: '#F4F6F0', margin: '12px 0' }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: communityVoices.length > 0 ? 8 : 0 }}>
             <span style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.8px',
@@ -416,7 +416,7 @@ export function BillPrioritySection({
                 <span style={{
                   background: '#E6F5EE',
                   color: '#0e6b4a',
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 7px',
                   borderRadius: 10,
@@ -428,7 +428,7 @@ export function BillPrioritySection({
                 <span style={{
                   background: '#FEF0EF',
                   color: '#c0392b',
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 7px',
                   borderRadius: 10,
@@ -452,7 +452,7 @@ export function BillPrioritySection({
                 }}
               >
                 <span style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 7px',
                   borderRadius: 10,
@@ -463,7 +463,7 @@ export function BillPrioritySection({
                   {voice.priority_type === 'endorse' ? 'Endorsed' : 'Blocked'}
                 </span>
                 <p style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   color: '#374151',
                   lineHeight: 1.5,
                   fontStyle: 'italic',
@@ -475,7 +475,7 @@ export function BillPrioritySection({
             ))
           ) : (
             <p style={{
-              fontSize: 11,
+              fontSize: 13,
               color: '#94a3b8',
               fontStyle: 'italic',
               marginTop: 8,
