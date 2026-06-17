@@ -44,7 +44,7 @@ export function HeaderDropdown({
           style={{
             background: '#FFF3D6',
             color: '#7A4F00',
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             padding: '4px 8px 4px 10px',
             borderRadius: 20,
@@ -59,7 +59,7 @@ export function HeaderDropdown({
           {districtName}
           <i
             className={open ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'}
-            style={{ fontSize: 9 }}
+            style={{ fontSize: 11 }}
           />
         </button>
 
@@ -77,7 +77,7 @@ export function HeaderDropdown({
           }}>
             <p style={{
               padding: '8px 14px 2px',
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.8px',
@@ -115,21 +115,21 @@ export function HeaderDropdown({
                 <i className="fa-solid fa-book" style={{ fontSize: 14, color: '#1B4332' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f1724' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>
                   How City Council works
                 </div>
-                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
                   Philadelphia City Council · 6 stages
                 </div>
               </div>
-              <i className="fa-solid fa-chevron-right" style={{ fontSize: 10, color: '#94a3b8' }} />
+              <i className="fa-solid fa-chevron-right" style={{ fontSize: 12, color: '#94a3b8' }} />
             </button>
 
             <div style={{ height: 1, background: '#F4F6F0', margin: '2px 14px' }} />
 
             <p style={{
               padding: '6px 14px 2px',
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.8px',
@@ -167,14 +167,14 @@ export function HeaderDropdown({
                 <i className="fa-solid fa-circle-info" style={{ fontSize: 14, color: '#1B4332' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f1724' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>
                   About UVote
                 </div>
-                <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
                   Mission and platform overview
                 </div>
               </div>
-              <i className="fa-solid fa-chevron-right" style={{ fontSize: 10, color: '#94a3b8' }} />
+              <i className="fa-solid fa-chevron-right" style={{ fontSize: 12, color: '#94a3b8' }} />
             </button>
           </div>
         )}

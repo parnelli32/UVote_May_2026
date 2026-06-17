@@ -71,7 +71,7 @@ function NavTabButton({
       style={{ gap: 2, color: active ? '#1B4332' : '#94A3B8', minHeight: 44 }}
     >
       {icon}
-      <span style={{ fontSize: 9, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 600 }}>{label}</span>
     </button>
   );
 }
