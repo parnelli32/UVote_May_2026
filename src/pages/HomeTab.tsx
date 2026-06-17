@@ -216,7 +216,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
       <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '50vh', padding: '0 20px' }}>
         <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 28, color: '#F0455A', marginBottom: 10 }} />
         <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', marginBottom: 4 }}>Something went wrong</p>
-        <p style={{ fontSize: 12, color: '#64748b' }}>{error}</p>
+        <p style={{ fontSize: 13, color: '#64748b' }}>{error}</p>
       </div>
     );
   }
@@ -233,12 +233,12 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
             background: '#1B4332', borderRadius: 8, padding: '9px 12px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
               {unvotedCount} bill{unvotedCount !== 1 ? 's' : ''} waiting for your vote
             </span>
             <span style={{
               background: 'rgba(255,255,255,0.2)', color: 'white',
-              fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+              fontSize: 13, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
             }}>
               {unvotedCount}
             </span>
@@ -248,7 +248,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
             background: '#E6F5EE', borderRadius: 8, padding: '9px 12px',
             textAlign: 'center',
           }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#0e6b4a' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0e6b4a' }}>
               You're all caught up.
             </span>
           </div>
@@ -275,30 +275,30 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
           >
             {/* Left */}
             <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <i className="fa-solid fa-sliders" style={{ fontSize: 11, color: '#1B4332', flexShrink: 0 }} />
+              <i className="fa-solid fa-sliders" style={{ fontSize: 13, color: '#1B4332', flexShrink: 0 }} />
               {activeFilterCount === 0 ? (
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', whiteSpace: 'nowrap' }}>
                   All bills · Newest first
                 </span>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
                   {statusFilter !== 'active' && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#E8F0EB', color: '#1B4332', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#E8F0EB', color: '#1B4332', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {statusFilter === 'passed' ? 'Passed' : 'All statuses'}
                     </span>
                   )}
                   {voteFilter !== 'all' && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#FFF3D6', color: '#7A4F00', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#FFF3D6', color: '#7A4F00', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {voteFilter === 'not-voted' ? 'Not Voted' : voteFilter === 'voted' ? 'Voted' : 'Matched Majority'}
                     </span>
                   )}
                   {topicFilter !== 'all' && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#EEF3FF', color: '#1A56DB', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#EEF3FF', color: '#1A56DB', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {topicFilter}
                     </span>
                   )}
                   {sortBy !== 'newest' && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F1F5F9', color: '#475569', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F1F5F9', color: '#475569', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {SORT_LABELS[sortBy]}
                     </span>
                   )}
@@ -308,13 +308,13 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
 
             {/* Right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>
                 {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'}
               </span>
               <i
                 className="fa-solid fa-chevron-down"
                 style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   color: '#94a3b8',
                   transform: drawerOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.2s',
@@ -340,12 +340,12 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>Filter &amp; Sort</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Filter &amp; Sort</span>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   {activeFilterCount > 0 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); clearAllFilters(); }}
-                      style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.65)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                      style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.65)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                     >
                       Clear all
                     </button>
@@ -353,20 +353,20 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
                   <i
                     className="fa-solid fa-xmark"
                     onClick={(e) => { e.stopPropagation(); setDrawerOpen(false); }}
-                    style={{ fontSize: 12, color: 'white', cursor: 'pointer' }}
+                    style={{ fontSize: 13, color: 'white', cursor: 'pointer' }}
                   />
                 </div>
               </div>
 
               {/* Sort */}
               <div style={{ padding: '9px 12px', borderBottom: '1px solid #F4F6F0' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Sort</div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Sort</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {(['newest', 'oldest', 'most-votes', 'highest-support', 'topic'] as const).map((val) => {
                     const active = sortBy === val;
                     return (
                       <button key={val} onClick={() => setSortBy(val)} style={{
-                        fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
                         background: active ? '#1B4332' : 'white',
                         color: active ? 'white' : '#64748b',
                         border: `1px solid ${active ? '#1B4332' : '#E2E8E4'}`,
@@ -380,13 +380,13 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
 
               {/* Status */}
               <div style={{ padding: '9px 12px', borderBottom: '1px solid #F4F6F0' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Status</div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Status</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {([['active', 'Active'], ['passed', 'Passed'], ['all', 'All']] as const).map(([val, label]) => {
                     const active = statusFilter === val;
                     return (
                       <button key={val} onClick={() => setStatusFilter(val)} style={{
-                        fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
                         background: active ? '#1B4332' : 'white',
                         color: active ? 'white' : '#64748b',
                         border: `1px solid ${active ? '#1B4332' : '#E2E8E4'}`,
@@ -400,13 +400,13 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
 
               {/* Your votes */}
               <div style={{ padding: '9px 12px', borderBottom: '1px solid #F4F6F0' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Your votes</div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Your votes</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {([['all', 'All'], ['not-voted', 'Not Voted'], ['voted', 'Voted'], ['matched-majority', 'Matched Majority']] as const).map(([val, label]) => {
                     const active = voteFilter === val;
                     return (
                       <button key={val} onClick={() => setVoteFilter(val)} style={{
-                        fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
                         background: active ? '#1B4332' : 'white',
                         color: active ? 'white' : '#64748b',
                         border: `1px solid ${active ? '#1B4332' : '#E2E8E4'}`,
@@ -420,14 +420,14 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
 
               {/* Topic */}
               <div style={{ padding: '9px 12px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Topic</div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 7 }}>Topic</div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {(['all', ...TOPIC_OPTIONS] as const).map((val) => {
                     const active = topicFilter === val;
                     const isAll = val === 'all';
                     return (
                       <button key={val} onClick={() => setTopicFilter(val)} style={{
-                        fontSize: 10, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, padding: '4px 9px', borderRadius: 20, cursor: 'pointer', flexShrink: 0,
                         background: active ? (isAll ? '#1B4332' : '#FFF3D6') : 'white',
                         color: active ? (isAll ? 'white' : '#7A4F00') : '#64748b',
                         border: `1px solid ${active ? (isAll ? '#1B4332' : '#F5A623') : '#E2E8E4'}`,
@@ -449,7 +449,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
           <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '40vh', gap: 0 }}>
             <i className="fa-solid fa-hand" style={{ fontSize: 32, color: '#1B4332', marginBottom: 10 }} />
             <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', marginBottom: 6 }}>No active bills right now.</p>
-            <p style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, maxWidth: 260, textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, maxWidth: 260, textAlign: 'center' }}>
               Check back soon — bills are added as Philadelphia City Council introduces new legislation.
             </p>
           </div>
@@ -458,12 +458,12 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
         <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '30vh', gap: 0, padding: '0 20px' }}>
           <i className="fa-solid fa-filter-circle-xmark" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
           <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', marginBottom: 4 }}>No bills match your filters.</p>
-          <p style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>Try adjusting or clearing your filters.</p>
+          <p style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>Try adjusting or clearing your filters.</p>
           <button
             onClick={clearAllFilters}
             style={{
               background: '#1B4332', color: 'white', borderRadius: 8,
-              padding: '8px 16px', fontSize: 12, fontWeight: 700,
+              padding: '8px 16px', fontSize: 13, fontWeight: 700,
               border: 'none', cursor: 'pointer',
             }}
           >
@@ -521,7 +521,7 @@ function WelcomeCard({ onNavigateToAbout }: { onNavigateToAbout: () => void }) {
           <p style={{ fontSize: 14, fontWeight: 800, color: '#0f1724', lineHeight: 1.2, margin: '0 0 2px' }}>
             Welcome to UVote
           </p>
-          <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4, margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4, margin: 0 }}>
             Your civic voice between elections.
           </p>
         </div>
@@ -537,13 +537,13 @@ function WelcomeCard({ onNavigateToAbout }: { onNavigateToAbout: () => void }) {
             <div style={{
               width: 20, height: 20, borderRadius: '50%',
               background: '#1B4332', color: 'white',
-              fontSize: 10, fontWeight: 800,
+              fontSize: 12, fontWeight: 800,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, marginTop: 1,
             }}>
               {i + 1}
             </div>
-            <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, margin: 0 }}>
               <span style={{ fontWeight: 700, color: '#0f1724' }}>{step.action}</span>
               {step.rest}
             </p>
@@ -560,7 +560,7 @@ function WelcomeCard({ onNavigateToAbout }: { onNavigateToAbout: () => void }) {
         <button
           onClick={onNavigateToAbout}
           style={{
-            fontSize: 11, fontWeight: 700, color: '#1B4332',
+            fontSize: 13, fontWeight: 700, color: '#1B4332',
             background: 'none', border: 'none', padding: 0,
             cursor: 'pointer', minHeight: 'unset',
           }}
