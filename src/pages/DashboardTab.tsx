@@ -4,6 +4,7 @@ import { logError } from '../lib/errorLogger';
 import { useAuth } from '../context/AuthContext';
 import { getTopicTag } from '../lib/billUtils';
 import { SkeletonPulse, DashboardSkeleton } from '../components/DashboardSkeleton';
+import { getCache, setCache, TTL } from '../lib/cache';
 import type { Representative } from '../lib/types';
 
 // ─── DASHBOARD TAB ──────────────────────────────────────────────────────────
@@ -73,6 +74,31 @@ export function DashboardTab({
     async function load() {
       setLoading(true);
       setError(null);
+
+      const mainKey = `dash_main_${user!.id}`;
+      type MainCache = {
+        rep: typeof rep;
+        activeBillCount: number;
+        userVoteCount: number;
+        spotlightBills: SpotlightBill[];
+        repRecentVotes: RepActivityItem[];
+        endorseSlotsUsed: number;
+        blockSlotsUsed: number;
+        worthYourVoteBills: WorthYourVoteBill[];
+      };
+      const mainCached = getCache<MainCache>(mainKey, TTL.SHORT);
+      if (mainCached) {
+        setRep(mainCached.rep);
+        setActiveBillCount(mainCached.activeBillCount);
+        setUserVoteCount(mainCached.userVoteCount);
+        setSpotlightBills(mainCached.spotlightBills);
+        setRepRecentVotes(mainCached.repRecentVotes);
+        setEndorseSlotsUsed(mainCached.endorseSlotsUsed);
+        setBlockSlotsUsed(mainCached.blockSlotsUsed);
+        setWorthYourVoteBills(mainCached.worthYourVoteBills);
+        setLoading(false);
+        return;
+      }
 
       try {
         // Sequential: get leg body ID (small table, fast)
@@ -182,6 +208,17 @@ export function DashboardTab({
           }));
         setWorthYourVoteBills(worthBills);
 
+        setCache(mainKey, {
+          rep: repRes.data ?? null,
+          activeBillCount: activeBillCountRes.count ?? 0,
+          userVoteCount: userVoteCountRes.count ?? 0,
+          spotlightBills: allSpotlight.slice(0, 3),
+          repRecentVotes: (repVotesRes.data ?? []) as RepActivityItem[],
+          endorseSlotsUsed: usedEndorse,
+          blockSlotsUsed: usedBlock,
+          worthYourVoteBills: worthBills,
+        });
+
         setLoading(false);
 
       } catch (err) {
@@ -208,6 +245,21 @@ export function DashboardTab({
     async function computeScore() {
       setScoreLoading(true);
       try {
+        const scoreKey = `dash_scores_${user!.id}`;
+        type ScoreCache = {
+          alignmentScore: number | null;
+          userDistrictAlignment: number | null;
+          userRepAlignment: number | null;
+        };
+        const scoreCached = getCache<ScoreCache>(scoreKey, TTL.SHORT);
+        if (scoreCached) {
+          setAlignmentScore(scoreCached.alignmentScore);
+          setUserDistrictAlignment(scoreCached.userDistrictAlignment);
+          setUserRepAlignment(scoreCached.userRepAlignment);
+          setScoreLoading(false);
+          return;
+        }
+
         const repBillIds = repRecentVotes.map(rv => rv.bill_id).filter(Boolean) as string[];
         if (repBillIds.length === 0) {
           if (!cancelled) { setAlignmentScore(null); setScoreLoading(false); }
@@ -288,6 +340,11 @@ export function DashboardTab({
 
         if (!cancelled) {
           setAlignmentScore(qualifying >= 2 ? Math.round((matched / qualifying) * 100) : null);
+          setCache(scoreKey, {
+            alignmentScore: qualifying >= 2 ? Math.round((matched / qualifying) * 100) : null,
+            userDistrictAlignment: uDistrictQualifying >= 1 ? Math.round((uDistrictMatched / uDistrictQualifying) * 100) : null,
+            userRepAlignment: uRepQualifying >= 1 ? Math.round((uRepMatched / uRepQualifying) * 100) : null,
+          });
           setScoreLoading(false);
         }
       } catch (err) {
