@@ -15,7 +15,7 @@ type NavProps = {
 };
 
 type VoteHistoryRow = UserVote & {
-  bills: Pick<Bill, 'title'> | null;
+  bills: Pick<Bill, 'title' | 'bill_number' | 'status'> | null;
   districtMajority: 'support' | 'oppose' | null;
   repVote: 'support' | 'oppose' | null;
 };
@@ -32,7 +32,7 @@ type UserProfilePageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToAbout: () => void;
   onNavigateToHowItWorks: () => void;
-  onNavigateToUserVotingHistory: () => void;
+  onNavigateToUserVotingHistory: (rows: VoteHistoryRow[]) => void;
   navProps: NavProps;
 };
 
@@ -192,7 +192,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     try {
       const { data: votes, error: votesErr } = await supabase
         .from('user_votes')
-        .select('*, bills(title)')
+        .select('*, bills(title, bill_number, status)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -266,7 +266,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
 
       const enriched: VoteHistoryRow[] = votes.map((v) => ({
         ...v,
-        bills: (v as typeof v & { bills: Pick<Bill, 'title'> | null }).bills,
+        bills: (v as typeof v & { bills: Pick<Bill, 'title' | 'bill_number' | 'status'> | null }).bills,
         districtMajority: districtMajorityMap.get(v.bill_id!) ?? null,
         repVote: repVoteMap.get(v.bill_id!) ?? null,
       }));
@@ -733,7 +733,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
             })}
             <div style={{ padding: '10px 14px', borderTop: '1px solid #F4F6F0' }}>
               <button
-                onClick={onNavigateToUserVotingHistory}
+                onClick={() => onNavigateToUserVotingHistory(history)}
                 style={{
                   width: '100%',
                   background: 'none',
