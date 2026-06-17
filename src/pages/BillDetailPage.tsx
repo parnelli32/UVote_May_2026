@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
+import { bustCache } from '../lib/cache';
 import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
@@ -247,6 +248,9 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
 
       setAnimateTally(true);
       setShowRepReveal(true);
+      bustCache(`bills_${user!.id}_`);
+      bustCache(`dash_main_${user!.id}`);
+      bustCache(`dash_scores_${user!.id}`);
       const promises: Promise<unknown>[] = [fetchTally()];
       if (!bill?.passed_by_suspension) {
         promises.push(fetchRepVotes());
