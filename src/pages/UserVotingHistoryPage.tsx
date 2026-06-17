@@ -11,6 +11,7 @@ type UserVotingHistoryPageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  preloadedRows?: unknown[];
   navProps: {
     activeTab: NavTab;
     onTabChange: (tab: NavTab) => void;
@@ -112,6 +113,7 @@ export function UserVotingHistoryPage({
   onNavigateToBill,
   onNavigateToHowItWorks,
   onNavigateToAbout,
+  preloadedRows,
   navProps,
 }: UserVotingHistoryPageProps) {
   const { user, profile, districtUserIds } = useAuth();
@@ -130,6 +132,22 @@ export function UserVotingHistoryPage({
     if (!user) return;
 
     async function load() {
+      if (preloadedRows) {
+        const converted: HistoryRow[] = (preloadedRows as any[]).map((row) => ({
+          user_vote_id: row.user_vote_id,
+          bill_id: row.bill_id,
+          vote: row.vote,
+          created_at: row.created_at,
+          title: (row.bills as any)?.title ?? '',
+          bill_number: (row.bills as any)?.bill_number ?? null,
+          status: (row.bills as any)?.status ?? null,
+          district_majority: row.districtMajority ?? null,
+          rep_vote: row.repVote ?? null,
+        }));
+        setRows(converted);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         // Step 1 — Fetch user votes with bill data
