@@ -299,7 +299,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 28, color: '#F0455A', marginBottom: 10 }} />
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
-            <p style={{ fontSize: 11, color: '#64748b' }}>{error ?? "We couldn't load this bill right now."}</p>
+            <p style={{ fontSize: 13, color: '#64748b' }}>{error ?? "We couldn't load this bill right now."}</p>
           </div>
           {navProps && <BottomNav {...navProps} />}
         </div>
@@ -323,7 +323,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
           {copyToast && (
             <div style={{
               position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)',
-              background: '#1B4332', color: 'white', fontSize: 11, fontWeight: 700,
+              background: '#1B4332', color: 'white', fontSize: 13, fontWeight: 700,
               padding: '7px 16px', borderRadius: 20, zIndex: 50,
             }}>
               Link copied.
@@ -340,7 +340,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
               {/* Tag row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{
-                  display: 'inline-block', fontSize: 10, fontWeight: 700,
+                  display: 'inline-block', fontSize: 12, fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.6px',
                   background: tag.bg, color: tag.color,
                   padding: '3px 9px', borderRadius: 6,
@@ -349,7 +349,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
                 </span>
                 {userVote && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+                    fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
                     background: isSupport ? '#E6F5EE' : '#FEF0EF',
                     color: isSupport ? '#0e6b4a' : '#c0392b',
                     padding: '3px 9px', borderRadius: 6,
@@ -371,7 +371,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
               {/* Bill number */}
               {bill.bill_number && (
                 <span style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   color: '#94a3b8',
                   display: 'block',
                   marginBottom: 8,
@@ -384,12 +384,12 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
               {(bill.primary_sponsor || bill.primary_sponsor_id || bill.introduced_date) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
                   {(bill.primary_sponsor_id || bill.primary_sponsor) && (
-                    <span style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4 }}>
                       Sponsored by:{' '}
                       {primarySponsorRep ? (
                         <button
                           onClick={() => onNavigateToRep(primarySponsorRep.representative_id)}
-                          style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 600, color: '#1B4332', cursor: 'pointer', minHeight: 'unset' }}
+                          style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 600, color: '#1B4332', cursor: 'pointer', minHeight: 'unset' }}
                         >
                           {primarySponsorRep.first_name} {primarySponsorRep.last_name}
                         </button>
@@ -399,13 +399,13 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
                     </span>
                   )}
                   {cosponsors.length > 0 && (
-                    <span style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>
                       Co-sponsored by:{' '}
                       {cosponsors.map((cs, i) => (
                         <span key={cs.representative_id}>
                           <button
                             onClick={() => onNavigateToRep(cs.representative_id)}
-                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 10, color: '#94a3b8', cursor: 'pointer', minHeight: 'unset', textDecoration: 'underline' }}
+                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: '#94a3b8', cursor: 'pointer', minHeight: 'unset', textDecoration: 'underline' }}
                           >
                             {cs.first_name} {cs.last_name}
                           </button>
@@ -415,7 +415,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
                     </span>
                   )}
                   {bill.introduced_date && (
-                    <span style={{ fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>
+                    <span style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4 }}>
                       Introduced: {formatIntroducedDate(bill.introduced_date)}
                     </span>
                   )}
@@ -440,9 +440,9 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
 
               {/* Tally labels */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-                <span style={{ fontSize: 10, color: '#94a3b8' }}>{tally.total_votes} votes cast</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{tally.total_votes} votes cast</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
               </div>
             </div>
 
@@ -461,7 +461,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
               >
                 <span style={{
                   display: 'block',
-                  fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.8px', color: '#1B4332', marginBottom: 6,
                 }}>
                   {section.label}
@@ -556,7 +556,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
                 background: '#FEF0EF', padding: '8px 16px',
                 textAlign: 'center', borderTop: '1px solid #F4F6F0',
               }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#c0392b' }}>{voteError}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#c0392b' }}>{voteError}</span>
               </div>
             )}
           </div>
@@ -626,7 +626,7 @@ function RepRevealSection({
       {/* Section label */}
       <span style={{
         display: 'block',
-        fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+        fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
         letterSpacing: '0.8px', color: '#94a3b8',
         marginBottom: 10,
       }}>
@@ -645,10 +645,10 @@ function RepRevealSection({
         }}>
           <i className="fa-solid fa-circle-info" style={{ fontSize: 13, color: '#94a3b8', flexShrink: 0, marginTop: 1 }} />
           <div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', margin: '0 0 4px' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', margin: '0 0 4px' }}>
               Passed by suspension of rules
             </p>
-            <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
               Individual member votes were not recorded for this bill. Philadelphia City Council passed it by suspending normal voting procedures.
             </p>
           </div>
@@ -658,9 +658,9 @@ function RepRevealSection({
           {/* District rep reveal block */}
           <div style={{ background: '#F4F6F0', borderRadius: 8, padding: 12, marginBottom: 10 }}>
             {repVoteError ? (
-              <p style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>{repVoteError}</p>
+              <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>{repVoteError}</p>
             ) : districtRepVote === undefined ? (
-              <p style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>Loading…</p>
+              <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>Loading…</p>
             ) : (
               <RepVoteBlock
                 repVote={districtRepVote}
@@ -678,12 +678,12 @@ function RepRevealSection({
                 style={{
                   width: '100%', background: '#F4F6F0', color: '#1B4332',
                   border: '1px solid #E2E8E4', borderRadius: 8, padding: '9px 12px',
-                  fontSize: 11, fontWeight: 700, textAlign: 'left', minHeight: 'unset',
+                  fontSize: 13, fontWeight: 700, textAlign: 'left', minHeight: 'unset',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}
               >
                 <span>At-Large Representatives' Votes</span>
-                <i className={`fa-solid fa-chevron-${atLargeExpanded ? 'up' : 'down'}`} style={{ fontSize: 10 }} />
+                <i className={`fa-solid fa-chevron-${atLargeExpanded ? 'up' : 'down'}`} style={{ fontSize: 12 }} />
               </button>
 
               {atLargeExpanded && (
@@ -707,7 +707,7 @@ function RepRevealSection({
           style={{
             flex: 1, background: '#F4F6F0', color: '#1B4332',
             border: '1px solid #E2E8E4', borderRadius: 8, padding: 10,
-            fontSize: 12, fontWeight: 700,
+            fontSize: 13, fontWeight: 700,
           }}
         >
           <i className="fa-solid fa-share-nodes" style={{ marginRight: 6 }} />
@@ -719,7 +719,7 @@ function RepRevealSection({
             style={{
               flex: 1, background: '#1B4332', color: 'white',
               border: 'none', borderRadius: 8, padding: 10,
-              fontSize: 12, fontWeight: 700,
+              fontSize: 13, fontWeight: 700,
             }}
           >
             View Rep Profile
@@ -741,7 +741,7 @@ function RepVoteBlock({
 }) {
   if (!repVote) {
     return (
-      <p style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
+      <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>
         Your representative's vote has not been recorded yet.
       </p>
     );
@@ -802,11 +802,11 @@ function RepVoteBlock({
         <div style={{ borderTop: '1px solid #E2E8E4', paddingTop: 8, marginTop: 4 }}>
           <span style={{
             display: 'block',
-            fontSize: 9, color: '#94a3b8', fontWeight: 600, marginBottom: 3,
+            fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 3,
           }}>
             Why they voted this way:
           </span>
-          <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>{repVote.explanation}</p>
+          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>{repVote.explanation}</p>
         </div>
       )}
     </>
