@@ -26,8 +26,8 @@ type Route =
   | { name: 'admin' }
   | { name: 'about' }
   | { name: 'howItWorks' }
-  | { name: 'repHistory'; repId: string }
-  | { name: 'userVotingHistory' };
+  | { name: 'repHistory'; repId: string; preloadedBills?: unknown[]; preloadedRepName?: string }
+  | { name: 'userVotingHistory'; preloadedRows?: unknown[] };
 
 function parseInitialRoute(): Route {
   const path = window.location.pathname;
@@ -106,12 +106,12 @@ function AppInner() {
     setRoute({ name: 'howItWorks' });
   }
 
-  function navigateToRepHistory(repId: string) {
-    setRoute({ name: 'repHistory', repId });
+  function navigateToRepHistory(repId: string, bills?: unknown[], repName?: string) {
+    setRoute({ name: 'repHistory', repId, preloadedBills: bills, preloadedRepName: repName });
   }
 
-  function navigateToUserVotingHistory() {
-    setRoute({ name: 'userVotingHistory' });
+  function navigateToUserVotingHistory(rows?: unknown[]) {
+    setRoute({ name: 'userVotingHistory', preloadedRows: rows });
   }
 
   useEffect(() => {
@@ -205,7 +205,7 @@ function AppInner() {
         onNavigateToRep={navigateToRep}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
-        onNavigateToRepHistory={() => navigateToRepHistory(route.repId)}
+        onNavigateToRepHistory={(bills, repName) => navigateToRepHistory(route.repId, bills, repName)}
         navProps={user ? navProps : undefined}
       />
     );
@@ -219,6 +219,8 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        preloadedBills={route.preloadedBills}
+        preloadedRepName={route.preloadedRepName}
         navProps={user ? navProps : undefined}
       />
     );
@@ -284,6 +286,7 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        preloadedRows={route.preloadedRows}
         navProps={navProps}
       />
     );
