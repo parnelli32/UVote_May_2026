@@ -313,7 +313,7 @@ export function DashboardTab({
       <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '50vh', padding: '0 20px' }}>
         <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 28, color: '#F0455A', marginBottom: 10 }} />
         <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', marginBottom: 4 }}>Something went wrong</p>
-        <p style={{ fontSize: 12, color: '#64748b' }}>{error}</p>
+        <p style={{ fontSize: 13, color: '#64748b' }}>{error}</p>
       </div>
     );
   }
@@ -343,7 +343,7 @@ export function DashboardTab({
           </span>
         </div>
         <div style={{ display: 'block' }}>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
             {districtName ?? 'Your District'}
             {' · '}
             Philadelphia City Council
@@ -351,7 +351,7 @@ export function DashboardTab({
         </div>
 
         {userVoteCount === 0 && (
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, margin: '8px 0' }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, margin: '8px 0' }}>
             You're among UVote's first members in your district. Your votes now help establish your district's position on active legislation.
           </p>
         )}
@@ -365,8 +365,8 @@ export function DashboardTab({
           alignItems: 'center',
           gap: 6,
         }}>
-          <i className="fa-solid fa-hand" style={{ fontSize: 11, color: '#F5A623', flexShrink: 0 }} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#F5A623' }}>
+          <i className="fa-solid fa-hand" style={{ fontSize: 13, color: '#F5A623', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#F5A623' }}>
             UVote Founding Member · Philadelphia
           </span>
         </div>
@@ -379,12 +379,12 @@ export function DashboardTab({
           <div style={{ background: '#1B4332', borderRadius: '12px 12px 0 0', padding: '12px 14px' }}>
             {/* Top row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'rgba(255,255,255,0.45)' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'rgba(255,255,255,0.45)' }}>
                 Your Representative
               </span>
               <button
                 onClick={() => onNavigateToRep(rep.representative_id)}
-                style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
+                style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
               >
                 View profile →
               </button>
@@ -406,7 +406,7 @@ export function DashboardTab({
                     {rep.first_name} {rep.last_name}
                   </p>
                   {rep.title && (
-                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: '3px 0 0', lineHeight: 1.3, display: 'block' }}>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '3px 0 0', lineHeight: 1.3, display: 'block' }}>
                       {rep.title}
                     </p>
                   )}
@@ -441,9 +441,9 @@ export function DashboardTab({
                     gap: 4,
                   }}>
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: alignDot, display: 'inline-block', flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 900, color: 'white' }}>{alignmentScore}%</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: 'white' }}>{alignmentScore}%</span>
                   </div>
-                  <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
                     Alignment
                   </span>
                 </div>
@@ -455,7 +455,7 @@ export function DashboardTab({
           {repRecentVotes.length === 0 ? (
             <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8', display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>No votes recorded yet</span>
+              <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>No votes recorded yet</span>
             </div>
           ) : (
             repRecentVotes.slice(0, 2).map((rv, i) => {
@@ -471,7 +471,7 @@ export function DashboardTab({
                   gap: 6,
                 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, display: 'inline-block', flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+                  <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
                     Voted{' '}
                     <span style={{ fontWeight: 700, color: rv.vote === 'support' ? '#0e6b4a' : rv.vote === 'oppose' ? '#c0392b' : '#0f1724' }}>{voteLabel}</span>
                     {' '}on{' '}
@@ -488,7 +488,7 @@ export function DashboardTab({
       <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid #F4F6F0' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
             Civic Footprint
           </span>
         </div>
@@ -496,16 +496,16 @@ export function DashboardTab({
         {/* Row 1: Bills voted progress */}
         <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid #F4F6F0' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#0f1724' }}>Bills voted on</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>Bills voted on</span>
             <span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: '#1B4332' }}>{userVoteCount}</span>
-              <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8' }}> of {activeBillCount} active</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#1B4332' }}>{userVoteCount}</span>
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#94a3b8' }}> of {activeBillCount} active</span>
             </span>
           </div>
           <div style={{ height: 5, borderRadius: 3, background: '#E2E8E4', overflow: 'hidden' }}>
             <div style={{ height: '100%', background: '#1B4332', borderRadius: 3, width: `${voteProgressPct}%` }} />
           </div>
-          <p style={{ fontSize: 10, color: '#94a3b8', marginTop: 5, lineHeight: 1.4, margin: '5px 0 0' }}>
+          <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5, lineHeight: 1.4, margin: '5px 0 0' }}>
             {alignmentScore === null && !scoreLoading
               ? 'Vote on more bills to build your district alignment score'
               : 'Your district alignment is based on bills where you and your rep both voted'}
@@ -516,7 +516,7 @@ export function DashboardTab({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #F4F6F0' }}>
           {/* District Alignment */}
           <div style={{ padding: 12, borderRight: '1px solid #F4F6F0' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
               District alignment
             </span>
             {scoreLoading ? (
@@ -527,7 +527,7 @@ export function DashboardTab({
                   <i className="fa-solid fa-lock" style={{ fontSize: 14, color: '#94a3b8' }} />
                   <span style={{ fontSize: 20, fontWeight: 900, color: '#94a3b8', marginLeft: 5 }}>—</span>
                 </div>
-                <p style={{ fontSize: 9, color: '#94a3b8', margin: '4px 0 0' }}>Needs more votes</p>
+                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>Needs more votes</p>
               </>
             ) : (() => {
               const districtDot = userDistrictAlignment >= 75 ? '#1DB97A' : userDistrictAlignment >= 40 ? '#F5A623' : '#F0455A';
@@ -537,7 +537,7 @@ export function DashboardTab({
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: districtDot, display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ fontSize: 20, fontWeight: 900, color: '#0f1724' }}>{userDistrictAlignment}%</span>
                   </div>
-                  <p style={{ fontSize: 9, color: '#64748b', margin: '4px 0 0' }}>You vs. District</p>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>You vs. District</p>
                 </>
               );
             })()}
@@ -545,7 +545,7 @@ export function DashboardTab({
 
           {/* Rep Alignment */}
           <div style={{ padding: 12 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
               Rep alignment
             </span>
             {scoreLoading ? (
@@ -553,7 +553,7 @@ export function DashboardTab({
             ) : userRepAlignment === null ? (
               <>
                 <span style={{ fontSize: 20, fontWeight: 900, color: '#94a3b8' }}>—</span>
-                <p style={{ fontSize: 9, color: '#94a3b8', margin: '4px 0 0' }}>Vote on more bills</p>
+                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>Vote on more bills</p>
               </>
             ) : (() => {
               const repAlignDot = userRepAlignment >= 75 ? '#1DB97A' : userRepAlignment >= 40 ? '#F5A623' : '#F0455A';
@@ -563,7 +563,7 @@ export function DashboardTab({
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: repAlignDot, display: 'inline-block', flexShrink: 0 }} />
                     <span style={{ fontSize: 20, fontWeight: 900, color: '#0f1724' }}>{userRepAlignment}%</span>
                   </div>
-                  <p style={{ fontSize: 9, color: '#64748b', margin: '4px 0 0' }}>You vs. {rep?.first_name} {rep?.last_name}</p>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>You vs. {rep?.first_name} {rep?.last_name}</p>
                 </>
               );
             })()}
@@ -574,10 +574,10 @@ export function DashboardTab({
         <div style={{ padding: '10px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <div>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 3 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 3 }}>
                 Priority slots
               </span>
-              <span style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>
+              <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
                 Endorse or block your highest-priority bills
               </span>
             </div>
@@ -610,11 +610,11 @@ export function DashboardTab({
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#1DB97A', display: 'inline-block' }} />
-                  <span style={{ fontSize: 9, color: '#94a3b8' }}>Endorse {endorseSlotsUsed}/3</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Endorse {endorseSlotsUsed}/3</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F0455A', display: 'inline-block' }} />
-                  <span style={{ fontSize: 9, color: '#94a3b8' }}>Block {blockSlotsUsed}/3</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Block {blockSlotsUsed}/3</span>
                 </div>
               </div>
             </div>
@@ -635,7 +635,7 @@ export function DashboardTab({
               background: 'none',
               border: 'none',
               padding: 0,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: 700,
               color: '#94a3b8',
               cursor: 'pointer',
@@ -645,7 +645,7 @@ export function DashboardTab({
               minHeight: 'unset',
             }}
           >
-            <i className="fa-solid fa-circle-info" style={{ fontSize: 11 }} />
+            <i className="fa-solid fa-circle-info" style={{ fontSize: 13 }} />
             Learn about the legislative process
           </button>
         </div>
@@ -658,19 +658,19 @@ export function DashboardTab({
           borderBottom: '1px solid #F4F6F0',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#94a3b8' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#94a3b8' }}>
             Bills Spotlight
           </span>
           <button
             onClick={onSwitchToBills}
-            style={{ fontSize: 10, fontWeight: 700, color: '#1B4332', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
+            style={{ fontSize: 12, fontWeight: 700, color: '#1B4332', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
           >
             See all bills →
           </button>
         </div>
 
         {spotlightBills.length === 0 ? (
-          <p style={{ fontSize: 12, color: '#94a3b8', padding: 16, textAlign: 'center', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', padding: 16, textAlign: 'center', margin: 0 }}>
             No active bills right now. Check back soon.
           </p>
         ) : (
@@ -693,7 +693,7 @@ export function DashboardTab({
                 {bill.userVote && (
                   <span style={{
                     position: 'absolute', top: 10, right: 12,
-                    fontSize: 9, fontWeight: 700,
+                    fontSize: 11, fontWeight: 700,
                     background: isSupport ? '#E8F0EB' : '#FEF0EF',
                     color: isSupport ? '#0e6b4a' : '#c0392b',
                     padding: '2px 6px', borderRadius: 10,
@@ -704,7 +704,7 @@ export function DashboardTab({
 
                 <span style={{
                   display: 'inline-block',
-                  fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
                   background: tag.bg, color: tag.color,
                   padding: '2px 6px', borderRadius: 4, marginBottom: 5,
                 }}>
@@ -716,7 +716,7 @@ export function DashboardTab({
                   style={{
                     display: 'block', background: 'none', border: 'none',
                     padding: 0, textAlign: 'left', width: '100%',
-                    fontSize: 11, fontWeight: 700, color: '#0f1724',
+                    fontSize: 13, fontWeight: 700, color: '#0f1724',
                     lineHeight: 1.3, marginBottom: 6, cursor: 'pointer',
                     minHeight: 'unset', whiteSpace: 'normal', wordWrap: 'break-word',
                     paddingRight: bill.userVote ? 80 : 0,
@@ -736,9 +736,9 @@ export function DashboardTab({
                       )}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-                      <span style={{ fontSize: 9, color: '#94a3b8' }}>{bill.total_votes} votes</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{bill.total_votes} votes</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
                     </div>
                   </>
                 ) : (
@@ -746,8 +746,8 @@ export function DashboardTab({
                     background: '#E8F0EB', borderRadius: 6, padding: '6px 10px',
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}>
-                    <i className="fa-solid fa-hand" style={{ fontSize: 10, color: '#1B4332', flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#1B4332' }}>
+                    <i className="fa-solid fa-hand" style={{ fontSize: 12, color: '#1B4332', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#1B4332' }}>
                       Be among the first in your district to vote
                     </span>
                   </div>
@@ -766,12 +766,12 @@ export function DashboardTab({
             borderBottom: '1px solid #F4F6F0',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#94a3b8' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: '#94a3b8' }}>
               Bills Worth Your Vote
             </span>
             <button
               onClick={onSwitchToBills}
-              style={{ fontSize: 10, fontWeight: 700, color: '#1B4332', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
+              style={{ fontSize: 12, fontWeight: 700, color: '#1B4332', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 'unset' }}
             >
               See all bills →
             </button>
@@ -792,19 +792,19 @@ export function DashboardTab({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5, flexWrap: 'wrap' }}>
                     <span style={{
-                      fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                      fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
                       background: tag.bg, color: tag.color,
                       padding: '2px 6px', borderRadius: 4,
                     }}>
                       {tag.label}
                     </span>
                     {bill.repVoted ? (
-                      <span style={{ fontSize: 9, fontWeight: 700, background: '#E8F0EB', color: '#1B4332', padding: '2px 7px', borderRadius: 10 }}>
-                        <i className="fa-solid fa-circle-dot" style={{ fontSize: 9, marginRight: 3 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#E8F0EB', color: '#1B4332', padding: '2px 7px', borderRadius: 10 }}>
+                        <i className="fa-solid fa-circle-dot" style={{ fontSize: 11, marginRight: 3 }} />
                         Rep voted
                       </span>
                     ) : bill.total_votes >= 5 ? (
-                      <span style={{ fontSize: 9, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: 10 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: 10 }}>
                         {bill.total_votes} voted
                       </span>
                     ) : null}
@@ -813,14 +813,14 @@ export function DashboardTab({
                     onClick={() => onNavigateToBill(bill.bill_id)}
                     style={{
                       background: 'none', border: 'none', padding: 0, textAlign: 'left',
-                      fontSize: 11, fontWeight: 700, color: '#0f1724', lineHeight: 1.35,
+                      fontSize: 13, fontWeight: 700, color: '#0f1724', lineHeight: 1.35,
                       marginBottom: 4, display: 'block', minHeight: 'unset',
                       whiteSpace: 'normal', wordWrap: 'break-word', width: '100%', cursor: 'pointer',
                     }}
                   >
                     {bill.title}
                   </button>
-                  <p style={{ fontSize: 10, color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
+                  <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, lineHeight: 1.4 }}>
                     {bill.contextText}
                   </p>
                 </div>
@@ -831,7 +831,7 @@ export function DashboardTab({
                     style={{
                       background: '#1B4332', color: 'white', border: 'none',
                       borderRadius: 8, padding: '7px 14px',
-                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      fontSize: 13, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     Vote
