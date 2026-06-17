@@ -415,7 +415,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
           <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
-            <p style={{ fontSize: 11, color: '#64748b' }}>{error ?? "We couldn't load this representative's profile."}</p>
+            <p style={{ fontSize: 13, color: '#64748b' }}>{error ?? "We couldn't load this representative's profile."}</p>
           </div>
           {navProps && <BottomNav {...navProps} />}
         </div>
@@ -461,7 +461,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
 
             {/* Title */}
             {rep.title && (
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 8, display: 'block' }}>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 8, display: 'block' }}>
                 {rep.title}
               </p>
             )}
@@ -472,7 +472,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                 <span style={{
                   display: 'inline-block',
                   background: 'rgba(245,166,35,0.2)', color: '#F5A623',
-                  fontSize: 10, fontWeight: 700,
+                  fontSize: 12, fontWeight: 700,
                   padding: '3px 9px', borderRadius: 10,
                 }}>
                   {rep.party}
@@ -484,10 +484,10 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
           {/* ── BIO CARD ── */}
           {rep.bio && (
             <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', padding: '12px 14px' }}>
-              <span style={{ display: 'block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 6 }}>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 6 }}>
                 About
               </span>
-              <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, margin: 0 }}>
                 {rep.bio}
               </p>
             </div>
@@ -499,7 +499,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
             {!isAtLarge && (
               <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid #E2E8E4' }}>
                 <span style={{
-                  display: 'block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
                 }}>
                   District Alignment Score
@@ -509,7 +509,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                 ) : districtScore ? (
                   <ScoreDisplay score={districtScore} size="large" explainer="How often this representative's recorded votes matched the majority position of their district's constituents on UVote. Only bills with individual vote records are included." suspensionCount={suspensionCount} />
                 ) : (
-                  <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
                     District Alignment Score will appear once more constituents have voted on bills in this district.
                   </p>
                 )}
@@ -519,7 +519,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
             {/* City alignment */}
             <div style={{ padding: isAtLarge ? '14px 14px 12px' : '12px 14px', borderBottom: user ? '1px solid #E2E8E4' : 'none' }}>
               <span style={{
-                display: 'block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
               }}>
                 {isAtLarge ? 'At-Large Seat Alignment' : 'City Alignment Score'}
@@ -529,7 +529,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
               ) : cityScore ? (
                 <ScoreDisplay score={cityScore} size={isAtLarge ? 'large' : 'small'} explainer="How often this representative's votes matched the majority position of all UVote users across Philadelphia." />
               ) : (
-                <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
                   City Alignment Score will appear once more Philadelphia constituents have voted.
                 </p>
               )}
@@ -539,7 +539,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
             {user && (
               <div style={{ padding: '14px 14px 14px' }}>
                 <span style={{
-                  display: 'block', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                  display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
                 }}>
                   Your Alignment
@@ -559,7 +559,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                           background: alignmentLabel(myAlignmentScore.score).dot,
                           display: 'inline-block', flexShrink: 0,
                         }} />
-                        <span style={{ fontSize: 12, fontWeight: 700, color: alignmentLabel(myAlignmentScore.score).labelColor }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: alignmentLabel(myAlignmentScore.score).labelColor }}>
                           {alignmentLabel(myAlignmentScore.score).label}
                         </span>
                       </div>
@@ -577,7 +577,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#0f1724', lineHeight: 1 }}>
                           {myAlignmentScore.total}
                         </span>
-                        <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           Bills Compared
                         </span>
                       </div>
@@ -588,7 +588,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#0e6b4a', lineHeight: 1 }}>
                           {myAlignmentScore.matched}
                         </span>
-                        <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#0e6b4a', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
+                        <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#0e6b4a', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
                           Aligned
                         </span>
                       </div>
@@ -599,18 +599,18 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#c0392b', lineHeight: 1 }}>
                           {myAlignmentScore.mismatched}
                         </span>
-                        <span style={{ display: 'block', fontSize: 9, fontWeight: 600, color: '#c0392b', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
+                        <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#c0392b', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
                           Not Aligned
                         </span>
                       </div>
                     </div>
 
-                    <p style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
+                    <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
                       How often your votes matched this representative's votes on bills you both voted on.
                     </p>
                   </div>
                 ) : (
-                  <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                  <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
                     Vote on more bills to see your personal alignment with this representative.
                   </p>
                 )}
@@ -679,13 +679,13 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                 {hasSponsoredSection && (
                   <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'visible' }}>
                     <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
                         Sponsored Bills
                       </span>
                       {allPassedSponsored.length > 0 && (
                         <span style={{
                           background: '#FFF3D6', color: '#7A4F00',
-                          fontSize: 9, fontWeight: 700,
+                          fontSize: 11, fontWeight: 700,
                           padding: '2px 7px', borderRadius: 10,
                           marginLeft: 6,
                         }}>
@@ -747,7 +747,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                     {totalSponsoredCount === 0 && (
                       <div style={{ padding: '16px 14px', textAlign: 'center' }}>
                         <i className="fa-solid fa-filter-circle-xmark" style={{ fontSize: 20, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No bills match these filters.</p>
+                        <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No bills match these filters.</p>
                       </div>
                     )}
                   </div>
@@ -756,13 +756,13 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                 {/* ── SECTION 3B: BILL HISTORY ── */}
                 <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'visible' }}>
                   <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
                       Bill History
                     </span>
                     {(() => {
                       const suspensionInHistory = billHistory.filter(b => b.passed_by_suspension).length;
                       return suspensionInHistory > 0 ? (
-                        <span style={{ fontSize: 9, fontWeight: 600, color: '#94a3b8', marginLeft: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginLeft: 8 }}>
                           {suspensionInHistory} by suspension
                         </span>
                       ) : null;
@@ -779,7 +779,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                     </div>
                   ) : otherBills.length === 0 ? (
                     <div style={{ padding: 16, textAlign: 'center' }}>
-                      <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                      <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
                         No votes recorded yet.
                       </p>
                     </div>
@@ -798,7 +798,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                             {b.bill_number && (
                               <span style={{
                                 display: 'block',
-                                fontSize: 9,
+                                fontSize: 11,
                                 fontWeight: 700,
                                 color: '#94a3b8',
                                 marginBottom: 3,
@@ -813,7 +813,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                                 border: 'none',
                                 padding: 0,
                                 textAlign: 'left',
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: 600,
                                 color: '#0f1724',
                                 lineHeight: 1.35,
@@ -831,7 +831,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                           {b.rep_vote?.vote &&
                           (b.rep_vote.vote === 'support' || b.rep_vote.vote === 'oppose') && (
                             <span style={{
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: 6,
@@ -856,7 +856,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                             background: 'none',
                             border: 'none',
                             padding: '6px 0',
-                            fontSize: 12,
+                            fontSize: 13,
                             fontWeight: 700,
                             color: '#1B4332',
                             cursor: 'pointer',
@@ -877,7 +877,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
           {!isAtLarge && atLargeReps.length > 0 && (
             <div style={{ background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'visible' }}>
               <div style={{ padding: '12px 14px 6px' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
                   Your At-Large Representatives
                 </span>
               </div>
@@ -895,7 +895,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                       {alRep.first_name} {alRep.last_name}
                     </span>
                     {alRep.title && (
-                      <span style={{ fontSize: 11, fontWeight: 400, color: '#64748b', lineHeight: 1.4, marginTop: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: 400, color: '#64748b', lineHeight: 1.4, marginTop: 2 }}>
                         {alRep.title}
                       </span>
                     )}
@@ -904,7 +904,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                     onClick={() => onNavigateToRep(alRep.representative_id)}
                     style={{
                       background: 'none', border: 'none', padding: 0,
-                      fontSize: 11, fontWeight: 700, color: '#1B4332',
+                      fontSize: 13, fontWeight: 700, color: '#1B4332',
                       minHeight: 'unset', flexShrink: 0, cursor: 'pointer',
                     }}
                   >
@@ -960,16 +960,16 @@ function ScoreDisplay({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, display: 'inline-block', flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>{label}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: labelColor }}>{label}</span>
         </div>
       </div>
-      <p style={{ display: 'block', fontSize: 10, color: '#94a3b8', marginTop: 4, marginBottom: 6 }}>
+      <p style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginTop: 4, marginBottom: 6 }}>
         Based on {score.qualifying} qualifying bill{score.qualifying !== 1 ? 's' : ''}
       </p>
       {suspensionCount !== undefined && suspensionCount > 0 && (
         <p style={{
           display: 'block',
-          fontSize: 10,
+          fontSize: 12,
           color: '#94a3b8',
           lineHeight: 1.5,
           marginTop: 4,
@@ -978,7 +978,7 @@ function ScoreDisplay({
           {suspensionCount} bill{suspensionCount !== 1 ? 's' : ''} in this record passed by suspension of rules — individual votes were not recorded for those bills.
         </p>
       )}
-      <p style={{ display: 'block', fontSize: 10, color: '#94a3b8', lineHeight: 1.5, marginTop: suspensionCount !== undefined && suspensionCount > 0 ? 4 : 0, marginBottom: 0 }}>
+      <p style={{ display: 'block', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginTop: suspensionCount !== undefined && suspensionCount > 0 ? 4 : 0, marginBottom: 0 }}>
         {explainer}
       </p>
     </div>
