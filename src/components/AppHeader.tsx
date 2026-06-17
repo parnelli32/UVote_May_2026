@@ -18,7 +18,7 @@ export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout }: AppHead
         <i className="fa-solid fa-hand" style={{ fontSize: 20, color: '#1B4332' }} />
         <div className="flex flex-col" style={{ gap: 1 }}>
           <span style={{ fontSize: 15, fontWeight: 900, color: '#0f1724', letterSpacing: '-0.3px', lineHeight: 1 }}>UVote</span>
-          <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#94A3B8', lineHeight: 1 }}>Philadelphia</span>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#94A3B8', lineHeight: 1 }}>Philadelphia</span>
         </div>
       </div>
       <HeaderDropdown
