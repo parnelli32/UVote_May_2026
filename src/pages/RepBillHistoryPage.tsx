@@ -13,6 +13,8 @@ type RepBillHistoryPageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  preloadedBills?: unknown[];
+  preloadedRepName?: string;
   navProps?: {
     activeTab: NavTab;
     onTabChange: (tab: NavTab) => void;
@@ -45,6 +47,8 @@ export function RepBillHistoryPage({
   onNavigateToBill,
   onNavigateToHowItWorks,
   onNavigateToAbout,
+  preloadedBills,
+  preloadedRepName,
   navProps,
 }: RepBillHistoryPageProps) {
   const { profile, districtUserIds: cachedDistrictUserIds } = useAuth();
@@ -62,6 +66,11 @@ export function RepBillHistoryPage({
 
   useEffect(() => {
     async function load() {
+      if (preloadedBills) {
+        setBills(preloadedBills as EnrichedBill[]);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         // Step 1 — Fetch rep info
@@ -253,10 +262,10 @@ export function RepBillHistoryPage({
         display: 'flex',
         flexDirection: 'column',
       }}>
-        {rep ? (
+        {(preloadedRepName || rep) ? (
           <>
             <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', margin: 0, lineHeight: 1.3 }}>
-              {rep.first_name} {rep.last_name}
+              {preloadedRepName ?? `${rep!.first_name} ${rep!.last_name}`}
             </p>
             <p style={{ fontSize: 13, color: '#94a3b8', margin: 0, marginTop: 2 }}>
               {bills.length} vote{bills.length !== 1 ? 's' : ''} on record
