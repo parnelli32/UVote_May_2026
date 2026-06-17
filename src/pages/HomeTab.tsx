@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
 import { getTopicTag } from '../lib/billUtils';
+import { getCache, setCache, TTL } from '../lib/cache';
 import type { UserVote } from '../lib/types';
 import { BillCard } from '../components/BillCard';
 import type { BillWithTally } from '../components/BillCard';
@@ -28,6 +29,21 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
       setLoading(true);
       setError(null);
       try {
+        const cacheKey = `bills_${user?.id ?? 'anon'}_${statusFilter}`;
+        type BillsCache = {
+          bills: BillWithTally[];
+          userVotes: [string, UserVote][];
+          districtVotes: { bill_id: string; user_id: string; vote: string }[];
+        };
+        const cached = getCache<BillsCache>(cacheKey, TTL.SHORT);
+        if (cached) {
+          setBills(cached.bills);
+          setUserVotes(new Map(cached.userVotes));
+          setDistrictVotes(cached.districtVotes);
+          setLoading(false);
+          return;
+        }
+
         // Resolve legislative_body_id from user's district
         let legislativeBodyId: string | null = null;
         if (profile?.district_id) {
@@ -121,6 +137,14 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
         }
 
         setDistrictVotes(dVotes);
+
+        setCache(cacheKey, {
+          bills: merged,
+          userVotes: user
+            ? [...new Map((uvData ?? []).map((uv) => [uv.bill_id!, uv])).entries()]
+            : [],
+          districtVotes: dVotes,
+        });
       } catch (err) {
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
         logError({ action: 'load_bill_feed', userId: user?.id ?? null, errorMessage: msg });
