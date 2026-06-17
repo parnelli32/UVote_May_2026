@@ -389,7 +389,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
-        <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
           <div className="flex-1 flex items-center justify-center">
             <div className="flex gap-1.5">
@@ -411,7 +411,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
   if (error || !rep) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
-        <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
@@ -425,7 +425,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
-      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
 
         <main

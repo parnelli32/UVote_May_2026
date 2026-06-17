@@ -272,7 +272,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
   if (loading) {
     return (
       <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
-        <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+        <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
           <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
           <div className="flex-1 flex items-center justify-center">
             <div className="flex gap-1.5">
@@ -294,7 +294,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
   if (error || !bill) {
     return (
       <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
-        <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+        <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
           <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 28, color: '#F0455A', marginBottom: 10 }} />
@@ -315,7 +315,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
 
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
-      <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+      <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
         <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
 
         <main className="flex-1 overflow-y-auto scrollbar-hide" style={{ padding: 10, paddingBottom: navProps ? 10 : 24 }}>

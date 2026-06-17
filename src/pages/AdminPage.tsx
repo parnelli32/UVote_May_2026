@@ -100,7 +100,7 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
-      <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+      <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
 
         {/* Top Nav */}
         <header className="flex-shrink-0 flex items-center px-3.5" style={{ background: 'white', borderBottom: '1px solid #E2E8E4', height: 54 }}>

@@ -22,7 +22,7 @@ type HomePageProps = {
 export function HomePage({ activeTab, onTabChange, onNavigateToBill, onNavigateToRep, onNavigateToProfile, onNavigateToAdmin, onNavigateToAbout, onNavigateToHowItWorks }: HomePageProps) {
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
-      <div className="w-full max-w-[480px] flex flex-col" style={{ height: '100dvh' }}>
+      <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
         <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
 
         {/* Body */}

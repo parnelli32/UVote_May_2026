@@ -301,7 +301,7 @@ export function UserVotingHistoryPage({
       display: 'flex',
       flexDirection: 'column',
       background: '#F4F6F0',
-      maxWidth: 480,
+      maxWidth: 600,
       margin: '0 auto',
     }}>
       <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />

@@ -140,7 +140,7 @@ export function OnboardingGuide({ onComplete }: OnboardingGuideProps) {
     }}>
     <div style={{
       width: '100%',
-      maxWidth: 480,
+      maxWidth: 600,
       background: '#F4F6F0',
       overflow: 'hidden',
       position: 'relative',
