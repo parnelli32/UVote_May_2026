@@ -52,7 +52,7 @@ function VoteRow({
       {/* Left */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {row.bill_number && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: 3 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: 3 }}>
             Bill {row.bill_number}
           </span>
         )}
@@ -60,7 +60,7 @@ function VoteRow({
           onClick={() => row.bill_id && onNavigateToBill(row.bill_id)}
           style={{
             background: 'none', border: 'none', padding: 0, textAlign: 'left',
-            fontSize: 12, fontWeight: 600, color: '#0f1724', lineHeight: 1.35,
+            fontSize: 13, fontWeight: 600, color: '#0f1724', lineHeight: 1.35,
             display: 'block', minHeight: 'unset',
             whiteSpace: 'normal', wordWrap: 'break-word', width: '100%',
           }}
@@ -72,7 +72,7 @@ function VoteRow({
       {/* Right */}
       <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
         <span style={{
-          fontSize: 10, fontWeight: 700,
+          fontSize: 12, fontWeight: 700,
           padding: '3px 8px', borderRadius: 6,
           background: row.vote === 'support' ? '#E6F5EE' : '#FEF0EF',
           color: row.vote === 'support' ? '#0e6b4a' : '#c0392b',
@@ -83,7 +83,7 @@ function VoteRow({
 
         {row.district_majority !== null && (
           <span style={{
-            fontSize: 9, fontWeight: 600,
+            fontSize: 11, fontWeight: 600,
             padding: '2px 7px', borderRadius: 6,
             background: '#FFF3D6', color: '#7A4F00',
             whiteSpace: 'nowrap',
@@ -94,7 +94,7 @@ function VoteRow({
 
         {row.rep_vote !== null && (
           <span style={{
-            fontSize: 9, fontWeight: 600,
+            fontSize: 11, fontWeight: 600,
             padding: '2px 7px', borderRadius: 6,
             background: row.rep_vote === row.vote ? '#F1F5F9' : '#FEF0EF',
             color: row.rep_vote === row.vote ? '#475569' : '#c0392b',
@@ -283,7 +283,7 @@ export function UserVotingHistoryPage({
     repFilter !== 'all';
 
   const selectStyle: React.CSSProperties = {
-    fontSize: 11,
+    fontSize: 12,
     padding: '4px 10px',
     border: '1px solid #E2E8E4',
     borderRadius: 20,
@@ -318,7 +318,7 @@ export function UserVotingHistoryPage({
         <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', margin: 0, lineHeight: 1.3 }}>
           My Voting Record
         </p>
-        <p style={{ fontSize: 11, color: '#94a3b8', margin: 0, marginTop: 2 }}>
+        <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, marginTop: 2 }}>
           {rows.length} bill{rows.length !== 1 ? 's' : ''} voted on
         </p>
       </div>
@@ -340,7 +340,7 @@ export function UserVotingHistoryPage({
             padding: '7px 12px',
             border: '1px solid #E2E8E4',
             borderRadius: 20,
-            fontSize: 12,
+            fontSize: 13,
             color: '#374151',
             background: '#F4F6F0',
             outline: 'none',
@@ -380,7 +380,7 @@ export function UserVotingHistoryPage({
           </select>
 
           <span style={{
-            fontSize: 11,
+            fontSize: 12,
             color: '#94a3b8',
             whiteSpace: 'nowrap',
             marginLeft: 'auto',
@@ -409,17 +409,17 @@ export function UserVotingHistoryPage({
         ) : error ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
-            <p style={{ fontSize: 11, color: '#64748b' }}>{error}</p>
+            <p style={{ fontSize: 12, color: '#64748b' }}>{error}</p>
           </div>
         ) : filtered.length === 0 && hasActiveFilters ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <i className="fa-solid fa-filter-circle-xmark" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No votes match these filters.</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No votes match these filters.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center' }}>
             <i className="fa-solid fa-file-lines" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No votes recorded yet.</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No votes recorded yet.</p>
           </div>
         ) : (
           <div style={{ background: 'white', borderRadius: 12, margin: 10, border: '1px solid #E2E8E4', overflow: 'hidden' }}>
