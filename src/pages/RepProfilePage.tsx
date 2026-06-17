@@ -23,7 +23,7 @@ type RepProfilePageProps = {
   onNavigateToRep: (repId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
-  onNavigateToRepHistory: () => void;
+  onNavigateToRepHistory: (bills: BillWithRepVote[], repName: string) => void;
   navProps?: NavProps;
 };
 
@@ -850,7 +850,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                         borderTop: '1px solid #F4F6F0',
                       }}>
                         <button
-                          onClick={onNavigateToRepHistory}
+                          onClick={() => onNavigateToRepHistory(billHistory, `${rep.first_name} ${rep.last_name}`)}
                           style={{
                             width: '100%',
                             background: 'none',
