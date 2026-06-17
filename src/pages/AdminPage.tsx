@@ -112,10 +112,10 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
             <i className="fa-solid fa-hand" style={{ fontSize: 20, color: '#1B4332' }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <span style={{ fontSize: 15, fontWeight: 900, color: '#0f1724', letterSpacing: '-0.3px', lineHeight: 1 }}>UVote</span>
-              <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#94A3B8', lineHeight: 1 }}>Philadelphia</span>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#94A3B8', lineHeight: 1 }}>Philadelphia</span>
             </div>
           </div>
-          <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#1B4332', background: '#E8F0EB', padding: '3px 9px', borderRadius: 20 }}>
+          <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: '#1B4332', background: '#E8F0EB', padding: '3px 9px', borderRadius: 20 }}>
             Admin
           </span>
         </header>
@@ -125,7 +125,7 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
           {TABS.map((tab) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               style={{
-                flex: 1, padding: '10px 0', textAlign: 'center', fontSize: 12, fontWeight: 600,
+                flex: 1, padding: '10px 0', textAlign: 'center', fontSize: 13, fontWeight: 600,
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: activeTab === tab.id ? '#1B4332' : '#94a3b8',
                 borderBottom: activeTab === tab.id ? '2px solid #1B4332' : 'none',
