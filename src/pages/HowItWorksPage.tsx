@@ -72,7 +72,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                   <p style={{ fontSize: 16, fontWeight: 700, color: '#0f1724', margin: '0 0 4px' }}>
                     Your civic power
                   </p>
-                  <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
                     Three moments where your voice has the most weight.
                   </p>
                 </div>
@@ -106,7 +106,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                           borderRadius: '50%',
                           background: numBg,
                           color: numColor,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: 900,
                           display: 'flex',
                           alignItems: 'center',
@@ -116,10 +116,10 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                           {stage.number}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: titleColor, margin: '0 0 3px' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: titleColor, margin: '0 0 3px' }}>
                             {stage.title}
                           </p>
-                          <p style={{ fontSize: 11, color: subColor, lineHeight: 1.5, margin: 0 }}>
+                          <p style={{ fontSize: 13, color: subColor, lineHeight: 1.5, margin: 0 }}>
                             {subTexts[idx]}
                           </p>
                         </div>
@@ -137,12 +137,12 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                   flexDirection: 'column',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-                    <i className="fa-solid fa-hand" style={{ fontSize: 11, color: '#F5A623', marginRight: 6 }} />
-                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: '#F5A623' }}>
+                    <i className="fa-solid fa-hand" style={{ fontSize: 13, color: '#F5A623', marginRight: 6 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: '#F5A623' }}>
                       UVote tip
                     </span>
                   </div>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55 }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55 }}>
                     The earlier you vote on a bill, the longer your district's position has been on record.
                   </span>
                 </div>
@@ -159,7 +159,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                     color: '#1B4332',
                     borderRadius: 10,
                     padding: 11,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
@@ -175,7 +175,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                     border: 'none',
                     borderRadius: 10,
                     padding: 12,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
@@ -195,7 +195,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                 borderBottom: '1px solid #E2E8E4',
               }}>
                 <p style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.8px',
@@ -234,7 +234,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                     <span style={{
                       background: currentStage.badgeBg,
                       color: currentStage.badgeColor,
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: 20,
@@ -247,7 +247,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
 
                 {currentStage.actionPhrase && (
                   <p style={{
-                    fontSize: 11,
+                    fontSize: 13,
                     color: 'rgba(255,255,255,0.6)',
                     margin: '10px 0 0',
                     lineHeight: 1.45,
@@ -271,9 +271,9 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                   padding: '10px 12px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <i className="fa-solid fa-hand" style={{ fontSize: 11, color: '#F5A623', marginRight: 5 }} />
+                    <i className="fa-solid fa-hand" style={{ fontSize: 13, color: '#F5A623', marginRight: 5 }} />
                     <span style={{
-                      fontSize: 9,
+                      fontSize: 11,
                       fontWeight: 700,
                       textTransform: 'uppercase' as const,
                       letterSpacing: '0.8px',
@@ -282,7 +282,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                       UVote moment
                     </span>
                   </div>
-                  <p style={{ fontSize: 11, color: '#7A4F00', lineHeight: 1.55, marginTop: 4, marginBottom: 0 }}>
+                  <p style={{ fontSize: 13, color: '#7A4F00', lineHeight: 1.55, marginTop: 4, marginBottom: 0 }}>
                     {currentStage.uvoteMessage}
                   </p>
                 </div>
@@ -328,7 +328,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                     color: '#1B4332',
                     borderRadius: 10,
                     padding: 11,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: step === 1 ? 'default' : 'pointer',
                     opacity: step === 1 ? 0.3 : 1,
@@ -345,7 +345,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
                     border: 'none',
                     borderRadius: 10,
                     padding: 12,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
