@@ -385,11 +385,11 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
           }}>
             {profile.username}
           </p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3, margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3, margin: 0 }}>
             {districtName ? `${districtName} · Philadelphia City Council` : 'Philadelphia City Council'}
           </p>
           {memberSince && (
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3, margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3, margin: 0 }}>
               Member since {memberSince}
             </p>
           )}
@@ -417,7 +417,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
           </div>
         ) : statsError ? (
           <div style={{ padding: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>{statsError}</p>
+            <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600 }}>{statsError}</p>
           </div>
         ) : (
           <div style={{
@@ -479,7 +479,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
               justifyContent: 'space-between',
             }}>
               <span style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 letterSpacing: '0.8px',
@@ -491,7 +491,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                 <span style={{
                   background: '#E8F0EB',
                   color: '#1B4332',
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 7px',
                   borderRadius: 10,
@@ -502,7 +502,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                 <span style={{
                   background: '#FEF0EF',
                   color: '#c0392b',
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 7px',
                   borderRadius: 10,
@@ -528,7 +528,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
             ) : priorities.length === 0 ? (
               <div style={{ padding: 20, textAlign: 'center' }}>
                 <i className="fa-solid fa-circle-check" style={{ fontSize: 22, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
-                <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
                   You haven't endorsed or blocked any bills yet.
                 </p>
               </div>
@@ -555,7 +555,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                         <span style={{
-                          fontSize: 9,
+                          fontSize: 11,
                           fontWeight: 700,
                           padding: '2px 7px',
                           borderRadius: 10,
@@ -568,7 +568,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                           <span style={{
                             background: '#F1F5F9',
                             color: '#475569',
-                            fontSize: 9,
+                            fontSize: 11,
                             fontWeight: 600,
                             padding: '2px 7px',
                             borderRadius: 10,
@@ -584,7 +584,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                           border: 'none',
                           padding: 0,
                           textAlign: 'left',
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: 600,
                           color: '#0f1724',
                           lineHeight: 1.35,
@@ -599,7 +599,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                       </button>
                       {p.statement && (
                         <p style={{
-                          fontSize: 11,
+                          fontSize: 13,
                           color: '#64748b',
                           fontStyle: 'italic',
                           lineHeight: 1.5,
@@ -618,7 +618,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                           background: 'none',
                           border: 'none',
                           padding: 0,
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: 700,
                           color: '#94a3b8',
                           textDecoration: 'underline',
@@ -646,7 +646,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
       }}>
         <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0' }}>
           <span style={{
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.8px',
@@ -667,14 +667,14 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
           </div>
         ) : historyError ? (
           <div style={{ padding: 16, textAlign: 'center' }}>
-            <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600 }}>
+            <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600 }}>
               {historyError}
             </p>
           </div>
         ) : history.length === 0 ? (
           <div style={{ padding: 24, textAlign: 'center' }}>
             <i className="fa-solid fa-check-to-slot" style={{ fontSize: 22, color: '#94a3b8', display: 'block', marginBottom: 6 }} />
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
               You haven't voted on any bills yet.
             </p>
           </div>
@@ -703,7 +703,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                       border: 'none',
                       padding: 0,
                       textAlign: 'left',
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: 600,
                       color: '#0f1724',
                       lineHeight: 1.35,
@@ -717,7 +717,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                     {billTitle}
                   </button>
                   <span style={{
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: 700,
                     padding: '3px 8px',
                     borderRadius: 6,
@@ -739,7 +739,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
                   background: 'none',
                   border: 'none',
                   padding: '6px 0',
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
                   color: '#1B4332',
                   cursor: 'pointer',
@@ -761,7 +761,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
         padding: 14,
       }}>
         <span style={{
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
@@ -787,7 +787,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
         </button>
 
         {signOutError && (
-          <p style={{ fontSize: 11, color: '#F0455A', fontWeight: 600, marginBottom: 8, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600, marginBottom: 8, textAlign: 'center' }}>
             {signOutError}
           </p>
         )}
@@ -842,7 +842,7 @@ function StatCard({
       <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1, color: numColor }}>
         {value}
       </span>
-      <span style={{ fontSize: 10, fontWeight: 600, color: labelColor, marginTop: 4, lineHeight: 1.3 }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: labelColor, marginTop: 4, lineHeight: 1.3 }}>
         {label}
       </span>
     </div>
