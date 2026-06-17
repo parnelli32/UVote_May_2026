@@ -247,7 +247,7 @@ export function OnboardingGuide({ onComplete }: OnboardingGuideProps) {
               background: 'none',
               border: 'none',
               color: 'rgba(255,255,255,0.45)',
-              fontSize: 11,
+              fontSize: 13,
               cursor: 'pointer',
               marginTop: 16,
               padding: '4px 8px',
@@ -416,7 +416,7 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
         </div>
         <button
           onClick={onSkip}
-          style={{ background: 'none', border: 'none', fontSize: 11, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
+          style={{ background: 'none', border: 'none', fontSize: 13, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
         >
           Skip
         </button>
@@ -430,7 +430,7 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
         padding: '14px 14px 12px',
       }}>
         <span style={{
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: 700,
           textTransform: 'uppercase' as const,
           letterSpacing: '0.8px',
@@ -450,7 +450,7 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           Democracy doesn't pause between elections
         </div>
         <p style={{
-          fontSize: 11,
+          fontSize: 13,
           color: 'rgba(255,255,255,0.6)',
           lineHeight: 1.55,
           margin: 0,
@@ -491,10 +491,10 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
             <i className="fa-solid fa-calendar" style={{ fontSize: 14, color: '#1B4332' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', margin: '0 0 3px' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', margin: '0 0 3px' }}>
               Bills are voted on every month
             </p>
-            <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
               Housing, safety, infrastructure, and budget — Council acts on these year-round, not just in election season.
             </p>
           </div>
@@ -523,10 +523,10 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
             <i className="fa-solid fa-user-check" style={{ fontSize: 14, color: '#1B4332' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', margin: '0 0 3px' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', margin: '0 0 3px' }}>
               Your rep votes with or without you
             </p>
-            <p style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
               Every bill gets a vote. Without a public record of where your district stands, your rep votes in the dark.
             </p>
           </div>
@@ -555,10 +555,10 @@ function IntroSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
             <i className="fa-solid fa-hand" style={{ fontSize: 14, color: '#7A4F00' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#7A4F00', margin: '0 0 3px' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#7A4F00', margin: '0 0 3px' }}>
               UVote closes the gap
             </p>
-            <p style={{ fontSize: 11, color: '#92600E', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 13, color: '#92600E', lineHeight: 1.5, margin: 0 }}>
               Vote on bills, track your rep's record, and build a public position your representative can't ignore.
             </p>
           </div>
@@ -606,7 +606,7 @@ function StageSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
         </div>
         <button
           onClick={onSkip}
-          style={{ background: 'none', border: 'none', fontSize: 11, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
+          style={{ background: 'none', border: 'none', fontSize: 13, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
         >
           Skip
         </button>
@@ -623,7 +623,7 @@ function StageSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           How a bill becomes law
         </div>
         <div style={{
-          fontSize: 11,
+          fontSize: 13,
           color: '#64748b',
           lineHeight: 1.5,
         }}>
@@ -650,18 +650,18 @@ function StageSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: 800,
                   color: '#475569',
                   flexShrink: 0,
                 }}>
                   {stage.number}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0f1724' }}>{stage.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>{stage.title}</span>
               </div>
               {stage.badge && (
                 <span style={{
-                  fontSize: 8,
+                  fontSize: 10,
                   fontWeight: 700,
                   background: stage.badgeBg,
                   color: stage.badgeColor,
@@ -674,7 +674,7 @@ function StageSlide({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
               )}
             </div>
             <p style={{
-              fontSize: 10,
+              fontSize: 12,
               color: '#94a3b8',
               margin: '3px 0 0',
               lineHeight: 1.4,
@@ -727,7 +727,7 @@ function FeaturesSlide({ onBack, onComplete }: { onBack: () => void; onComplete:
         </div>
         <button
           onClick={onComplete}
-          style={{ background: 'none', border: 'none', fontSize: 11, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
+          style={{ background: 'none', border: 'none', fontSize: 13, color: '#94a3b8', cursor: 'pointer', padding: '4px 0' }}
         >
           Skip
         </button>
@@ -744,7 +744,7 @@ function FeaturesSlide({ onBack, onComplete }: { onBack: () => void; onComplete:
           What UVote gives you
         </div>
         <div style={{
-          fontSize: 11,
+          fontSize: 13,
           color: '#64748b',
           lineHeight: 1.5,
         }}>
@@ -775,8 +775,8 @@ function FeaturesSlide({ onBack, onComplete }: { onBack: () => void; onComplete:
               <i className={card.icon} style={{ fontSize: 15, color: card.iconColor }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', margin: '0 0 4px' }}>{card.title}</p>
-              <p style={{ fontSize: 11, color: '#374151', lineHeight: 1.55, margin: 0 }}>{card.desc}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', margin: '0 0 4px' }}>{card.title}</p>
+              <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.55, margin: 0 }}>{card.desc}</p>
             </div>
           </div>
         ))}
@@ -789,12 +789,12 @@ function FeaturesSlide({ onBack, onComplete }: { onBack: () => void; onComplete:
           marginTop: 2,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-            <i className="fa-solid fa-hand" style={{ fontSize: 11, color: '#F5A623', marginRight: 6 }} />
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: '#F5A623' }}>
+            <i className="fa-solid fa-hand" style={{ fontSize: 13, color: '#F5A623', marginRight: 6 }} />
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: '#F5A623' }}>
               UVote tip
             </span>
           </div>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55, margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.55, margin: 0 }}>
             The earlier you vote on a bill, the longer your district's position has been on record.
           </p>
         </div>
@@ -811,7 +811,7 @@ function FeaturesSlide({ onBack, onComplete }: { onBack: () => void; onComplete:
             color: '#1B4332',
             borderRadius: 10,
             padding: 12,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
           }}
