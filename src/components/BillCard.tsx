@@ -43,7 +43,7 @@ export function BillCard({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{
-            display: 'inline-block', fontSize: 10, fontWeight: 700,
+            display: 'inline-block', fontSize: 12, fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '0.6px',
             background: tag.bg, color: tag.color,
             padding: '3px 9px', borderRadius: 6,
@@ -51,18 +51,18 @@ export function BillCard({
             {tag.label}
           </span>
           {bill.status === 'passed' && (
-            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#E6F5EE', color: '#0e6b4a', padding: '2px 7px', borderRadius: 10 }}>Passed</span>
+            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#E6F5EE', color: '#0e6b4a', padding: '2px 7px', borderRadius: 10 }}>Passed</span>
           )}
           {bill.status === 'failed' && (
-            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#FEF0EF', color: '#c0392b', padding: '2px 7px', borderRadius: 10 }}>Failed</span>
+            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#FEF0EF', color: '#c0392b', padding: '2px 7px', borderRadius: 10 }}>Failed</span>
           )}
           {bill.status === 'tabled' && (
-            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: 10 }}>Tabled</span>
+            <span style={{ marginLeft: 6, flexShrink: 0, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: 10 }}>Tabled</span>
           )}
         </div>
         {voted ? (
           <span style={{
-            fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+            fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
             background: isSupport ? '#E6F5EE' : '#FFF0F2',
             color: isSupport ? '#0e6b4a' : '#c0182d',
             padding: '3px 8px', borderRadius: 6,
@@ -71,7 +71,7 @@ export function BillCard({
           </span>
         ) : isLoggedIn ? (
           <span style={{
-            fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+            fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
             background: '#F1F5F9', color: '#94a3b8',
             padding: '3px 8px', borderRadius: 6,
           }}>
@@ -92,7 +92,7 @@ export function BillCard({
       {/* Preview */}
       {preview && (
         <p style={{
-          fontSize: 12, color: '#64748b', lineHeight: 1.6, marginBottom: 12,
+          fontSize: 13, color: '#64748b', lineHeight: 1.6, marginBottom: 12,
           whiteSpace: 'normal',
         }}>
           {preview}
@@ -114,9 +114,9 @@ export function BillCard({
 
       {/* Tally labels */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-        <span style={{ fontSize: 10, fontWeight: 500, color: '#94a3b8' }}>{bill.total_votes} votes cast</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}>{bill.total_votes} votes cast</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
       </div>
 
 
