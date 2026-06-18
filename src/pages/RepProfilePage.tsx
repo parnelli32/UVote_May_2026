@@ -502,7 +502,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                   display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
                 }}>
-                  District Alignment Score
+                  Constituent Score
                 </span>
                 {scoresLoading ? (
                   <ScoreLoading />
@@ -522,7 +522,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                 display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
               }}>
-                {isAtLarge ? 'At-Large Seat Alignment' : 'City Alignment Score'}
+                {isAtLarge ? 'At-Large Seat Alignment' : 'City Constituent Score'}
               </span>
               {scoresLoading ? (
                 <ScoreLoading />
@@ -542,7 +542,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                   display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                   letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
                 }}>
-                  Your Alignment
+                  Representation Score
                 </span>
                 {scoresLoading ? (
                   <ScoreLoading />
@@ -606,7 +606,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
                     </div>
 
                     <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, margin: 0 }}>
-                      How often your votes matched this representative's votes on bills you both voted on.
+                      How often your votes matched your rep's official votes.
                     </p>
                   </div>
                 ) : (
@@ -933,9 +933,9 @@ function ScoreLoading() {
 }
 
 function alignmentLabel(score: number): { dot: string; label: string; labelColor: string } {
-  if (score >= 75) return { dot: '#1DB97A', label: 'High Alignment', labelColor: '#0e6b4a' };
-  if (score >= 40) return { dot: '#F5A623', label: 'Moderate Alignment', labelColor: '#7A4F00' };
-  return { dot: '#F0455A', label: 'Low Alignment', labelColor: '#c0392b' };
+  if (score >= 75) return { dot: '#1DB97A', label: 'High', labelColor: '#0e6b4a' };
+  if (score >= 40) return { dot: '#F5A623', label: 'Moderate', labelColor: '#7A4F00' };
+  return { dot: '#F0455A', label: 'Low', labelColor: '#c0392b' };
 }
 
 function ScoreDisplay({
