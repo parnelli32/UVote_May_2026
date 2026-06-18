@@ -59,24 +59,21 @@ export function getTopicTag(title: string, summary?: string | null, topicOverrid
   return TOPIC_TAG_MAP['Other'];
 }
 
-export function getSummaryPreview(summary: string | null | undefined): string {
+export function getSummaryPreview(
+  summary: string | null | undefined,
+): string {
   if (!summary) return '';
-
-  // Strip numbered list markers and section label prefixes line by line
-  const cleaned = summary
-    .split('\n')
-    .map((line) =>
-      line
-        .replace(/^\s*\d+[.)]\s+/, '')
-        .replace(/^\s*(?:what this bill does|who it affects|if it passes|if it doesn't pass)\s*:\s*/i, '')
-        .trim()
-    )
-    .filter(Boolean)
-    .join(' ');
-
-  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) ?? [];
-  if (sentences.length === 0) return cleaned.trim();
-
+  const sections =
+    parseSummaryIntoSections(summary);
+  if (sections.length === 0) {
+    return summary.trim();
+  }
+  const text = sections[0].text;
+  const sentences =
+    text.match(/[^.!?]+[.!?]+/g) ?? [];
+  if (sentences.length === 0) {
+    return text.trim();
+  }
   return sentences
     .slice(0, 2)
     .map((s) => s.trim())
@@ -100,30 +97,61 @@ const SECTION_LABELS = [
   "If it doesn't pass",
 ];
 
-export function parseSummaryIntoSections(summary: string | null | undefined): SummarySection[] {
+export function parseSummaryIntoSections(
+  summary: string | null | undefined,
+): SummarySection[] {
   if (!summary) return [];
-
-  // Try to detect structured content — look for numbered lines or keyword anchors
-  const structureRegex = /(?:^|\n)\s*(?:\d+[.)]\s*|(?:what this bill does|who it affects|if it passes|if it doesn't pass))/i;
-  if (!structureRegex.test(summary)) {
-    return [{ label: SECTION_LABELS[0], text: summary.trim() }];
+  const raw = summary.trim();
+  // Option B: multi-line format —
+  // number marker on its own line.
+  // Handles any existing bills stored
+  // this way.
+  if (/\n\s*\d+[.)]/m.test(raw)) {
+    const parts = raw.split(
+      /\n\s*(?=\d+[.)]\s)/,
+    );
+    const built: SummarySection[] = [];
+    parts.forEach((part, i) => {
+      const text = part
+        .replace(/^\d+[.)]\s*/, '')
+        .trim();
+      if (text) {
+        built.push({
+          label:
+            SECTION_LABELS[i] ??
+            `Section ${i + 1}`,
+          text,
+        });
+      }
+    });
+    if (built.length > 0) {
+      return built.slice(0, 4);
+    }
   }
-
-  // Split on numbered list markers or known labels
-  const parts = summary.split(/\n\s*(?=\d+[.)]\s)/);
-  const sections: SummarySection[] = [];
-
-  parts.forEach((part, i) => {
-    const text = part.replace(/^\d+[.)]\s*/, '').trim();
-    if (!text) return;
-    sections.push({ label: SECTION_LABELS[i] ?? `Section ${i + 1}`, text });
-  });
-
-  if (sections.length === 0) {
-    return [{ label: SECTION_LABELS[0], text: summary.trim() }];
+  // Option A (primary format):
+  // "1. text 2. text 3. text 4. text"
+  // Split on inline numbered markers.
+  const matches = [
+    ...raw.matchAll(
+      /(?:^|\s+)[1-4]\.\s+([\s\S]*?)(?=\s+[1-4]\.\s|$)/g,
+    ),
+  ];
+  if (matches.length > 0) {
+    return matches.slice(0, 4).map(
+      (m, i) => ({
+        label:
+          SECTION_LABELS[i] ??
+          `Section ${i + 1}`,
+        text: m[1].trim(),
+      }),
+    );
   }
-
-  return sections.slice(0, 4);
+  // Fallback: no structure detected —
+  // show full text under section 1.
+  return [{
+    label: SECTION_LABELS[0],
+    text: raw,
+  }];
 }
 
 export function formatIntroducedDate(dateStr: string | null | undefined): string {
