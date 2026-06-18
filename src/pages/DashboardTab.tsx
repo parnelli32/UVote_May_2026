@@ -501,7 +501,7 @@ export function DashboardTab({
                     <span style={{ fontSize: 13, fontWeight: 900, color: 'white' }}>{alignmentScore}%</span>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
-                    Alignment
+                    Constituent score
                   </span>
                 </div>
               ) : null}
@@ -564,17 +564,43 @@ export function DashboardTab({
           </div>
           <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 5, lineHeight: 1.4, margin: '5px 0 0' }}>
             {alignmentScore === null && !scoreLoading
-              ? 'Vote on more bills to build your district alignment score'
-              : 'Your district alignment is based on bills where you and your rep both voted'}
+              ? 'Vote on more bills to build your district score'
+              : 'Your district score is based on bills where you and your rep both voted'}
           </p>
         </div>
 
         {/* Row 2: Alignment stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #F4F6F0' }}>
-          {/* District Alignment */}
+          {/* Representation Score */}
           <div style={{ padding: 12, borderRight: '1px solid #F4F6F0' }}>
             <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
-              District alignment
+              Representation score
+            </span>
+            {scoreLoading ? (
+              <SkeletonPulse width={40} height={16} />
+            ) : userRepAlignment === null ? (
+              <>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#94a3b8' }}>—</span>
+                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>Vote on more bills</p>
+              </>
+            ) : (() => {
+              const repAlignDot = userRepAlignment >= 75 ? '#1DB97A' : userRepAlignment >= 40 ? '#F5A623' : '#F0455A';
+              return (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: repAlignDot, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ fontSize: 20, fontWeight: 900, color: '#0f1724' }}>{userRepAlignment}%</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>You vs. {rep?.first_name} {rep?.last_name}</p>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* District Score */}
+          <div style={{ padding: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
+              District score
             </span>
             {scoreLoading ? (
               <SkeletonPulse width={40} height={16} />
@@ -595,32 +621,6 @@ export function DashboardTab({
                     <span style={{ fontSize: 20, fontWeight: 900, color: '#0f1724' }}>{userDistrictAlignment}%</span>
                   </div>
                   <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>You vs. District</p>
-                </>
-              );
-            })()}
-          </div>
-
-          {/* Rep Alignment */}
-          <div style={{ padding: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', display: 'block', marginBottom: 6 }}>
-              Rep alignment
-            </span>
-            {scoreLoading ? (
-              <SkeletonPulse width={40} height={16} />
-            ) : userRepAlignment === null ? (
-              <>
-                <span style={{ fontSize: 20, fontWeight: 900, color: '#94a3b8' }}>—</span>
-                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>Vote on more bills</p>
-              </>
-            ) : (() => {
-              const repAlignDot = userRepAlignment >= 75 ? '#1DB97A' : userRepAlignment >= 40 ? '#F5A623' : '#F0455A';
-              return (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: repAlignDot, display: 'inline-block', flexShrink: 0 }} />
-                    <span style={{ fontSize: 20, fontWeight: 900, color: '#0f1724' }}>{userRepAlignment}%</span>
-                  </div>
-                  <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>You vs. {rep?.first_name} {rep?.last_name}</p>
                 </>
               );
             })()}
