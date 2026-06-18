@@ -77,8 +77,8 @@ const FEATURE_CARDS = [
     icon: 'fa-solid fa-circle-check',
     iconColor: '#1B4332',
     bg: '#E8F0EB',
-    title: 'Alignment score',
-    desc: "After the final vote, your rep's alignment score updates. Mismatches get flagged publicly.",
+    title: 'Constituent score',
+    desc: "After the final vote, your rep's constituent score updates automatically. Mismatches between the rep and district majority are flagged publicly.",
   },
 ];
 
