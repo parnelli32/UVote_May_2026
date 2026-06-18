@@ -441,18 +441,18 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
               labelColor="#64748b"
             />
             <StatCard
-              value={stats?.districtAlignment !== null ? `${stats!.districtAlignment}%` : '—'}
-              label="District Alignment"
-              bg="#E8F0EB"
-              numColor="#1B4332"
-              labelColor="#1B4332"
-            />
-            <StatCard
               value={stats?.repAlignment !== null ? `${stats!.repAlignment}%` : '—'}
-              label="Rep Alignment"
+              label="Representation Score"
               bg="#FFF3D6"
               numColor="#7A4F00"
               labelColor="#7A4F00"
+            />
+            <StatCard
+              value={stats?.districtAlignment !== null ? `${stats!.districtAlignment}%` : '—'}
+              label="District Score"
+              bg="#E8F0EB"
+              numColor="#1B4332"
+              labelColor="#1B4332"
             />
           </div>
         )}
