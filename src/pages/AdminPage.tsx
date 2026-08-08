@@ -9,6 +9,7 @@ import { BillsTab } from './admin/BillsTab';
 import { RepVotesTab } from './admin/RepVotesTab';
 import { DistrictsRepsTab } from './admin/DistrictsRepsTab';
 import { ErrorLogsTab } from './admin/ErrorLogsTab';
+import { VotingBlocksTab } from './admin/VotingBlocksTab';
 
 type NavProps = {
   activeTab: NavTab;
@@ -17,7 +18,7 @@ type NavProps = {
   onNavigateToAdmin: () => void;
 };
 
-type AdminTab = 'bills' | 'repvotes' | 'districts' | 'errorlogs';
+type AdminTab = 'bills' | 'repvotes' | 'districts' | 'votingblocks' | 'errorlogs';
 
 type AdminPageProps = {
   onNavigateHome: () => void;
@@ -94,6 +95,7 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
     { id: 'bills', label: 'Bills' },
     { id: 'repvotes', label: 'Rep Votes' },
     { id: 'districts', label: 'Districts & Reps' },
+    { id: 'votingblocks', label: 'Voting Blocks' },
     { id: 'errorlogs', label: 'Error Logs' },
   ];
 
@@ -154,6 +156,9 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
               onRepsChange={loadReps}
               onToast={setToast}
             />
+          )}
+          {activeTab === 'votingblocks' && (
+            <VotingBlocksTab onToast={setToast} />
           )}
           {activeTab === 'errorlogs' && (
             <ErrorLogsTab onStatsChange={reloadStats} />

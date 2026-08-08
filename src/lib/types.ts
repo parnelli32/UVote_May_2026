@@ -138,8 +138,81 @@ export type Database = {
           created_at?: string;
         };
       };
+      voting_blocks: {
+        Row: {
+          voting_block_id: string;
+          name: string;
+          created_by: string | null;
+          join_code: string;
+          visibility: 'private' | 'public';
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['voting_blocks']['Row'], 'voting_block_id' | 'join_code' | 'is_active' | 'created_at'> & {
+          voting_block_id?: string;
+          join_code?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['voting_blocks']['Insert']>;
+      };
+      voting_block_members: {
+        Row: {
+          voting_block_member_id: string;
+          voting_block_id: string;
+          user_id: string;
+          is_admin: boolean;
+          joined_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['voting_block_members']['Row'], 'voting_block_member_id' | 'is_admin' | 'joined_at'> & {
+          voting_block_member_id?: string;
+          is_admin?: boolean;
+          joined_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['voting_block_members']['Insert']>;
+      };
     };
   };
+};
+
+// `voting_blocks_public` view — no join_code, safe to read without being an admin.
+export type VotingBlockPublic = {
+  voting_block_id: string;
+  name: string;
+  visibility: 'private' | 'public';
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  member_count: number;
+};
+
+// Return shape of the get_voting_block_bill_positions RPC.
+export type VotingBlockBillPosition = {
+  bill_id: string;
+  support_count: number;
+  oppose_count: number;
+  total_votes: number;
+  position: 'support' | 'oppose' | 'tied';
+};
+
+// Return shape of the get_voting_block_geo_breakdown RPC.
+export type VotingBlockGeoBreakdown = {
+  district_name: string | null;
+  legislative_body_name: string | null;
+  member_count: number;
+};
+
+// Own-row shape from voting_block_members (a user can only ever read their own row).
+export type MyVotingBlockMembership = Database['public']['Tables']['voting_block_members']['Row'];
+
+// Return shape of the get_bill_voting_block_positions RPC.
+export type BillVotingBlockPosition = {
+  voting_block_id: string;
+  name: string;
+  support_count: number;
+  oppose_count: number;
+  total_votes: number;
+  position: 'support' | 'oppose' | 'tied';
 };
 
 export type BillPriority = {
@@ -161,3 +234,5 @@ export type UserProfile = Database['public']['Tables']['users']['Row'];
 export type UserVote = Database['public']['Tables']['user_votes']['Row'];
 export type RepVote = Database['public']['Tables']['rep_votes']['Row'];
 export type ErrorLog = Database['public']['Tables']['error_logs']['Row'];
+export type VotingBlock = Database['public']['Tables']['voting_blocks']['Row'];
+export type VotingBlockMember = Database['public']['Tables']['voting_block_members']['Row'];
