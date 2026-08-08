@@ -216,6 +216,47 @@ export type Database = {
           referencedColumns: ['bill_id'];
         }];
       };
+      voting_blocks: {
+        Row: {
+          voting_block_id: string;
+          name: string;
+          created_by: string | null;
+          join_code: string;
+          visibility: 'private' | 'public';
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['voting_blocks']['Row'], 'voting_block_id' | 'join_code' | 'is_active' | 'created_at'> & {
+          voting_block_id?: string;
+          join_code?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['voting_blocks']['Insert']>;
+        Relationships: [];
+      };
+      voting_block_members: {
+        Row: {
+          voting_block_member_id: string;
+          voting_block_id: string;
+          user_id: string;
+          is_admin: boolean;
+          joined_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['voting_block_members']['Row'], 'voting_block_member_id' | 'is_admin' | 'joined_at'> & {
+          voting_block_member_id?: string;
+          is_admin?: boolean;
+          joined_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['voting_block_members']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'voting_block_members_voting_block_id_fkey';
+          columns: ['voting_block_id'];
+          isOneToOne: false;
+          referencedRelation: 'voting_blocks';
+          referencedColumns: ['voting_block_id'];
+        }];
+      };
     };
     Views: {
       bill_vote_tallies: {
@@ -224,6 +265,18 @@ export type Database = {
           support_count: number;
           oppose_count: number;
           total_votes: number;
+        };
+        Relationships: [];
+      };
+      voting_blocks_public: {
+        Row: {
+          voting_block_id: string;
+          name: string;
+          visibility: 'private' | 'public';
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          member_count: number;
         };
         Relationships: [];
       };
@@ -270,39 +323,6 @@ export type Database = {
       user_votes_total_count: {
         Args: Record<string, never>;
         Returns: number;
-      };
-      voting_blocks: {
-        Row: {
-          voting_block_id: string;
-          name: string;
-          created_by: string | null;
-          join_code: string;
-          visibility: 'private' | 'public';
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['voting_blocks']['Row'], 'voting_block_id' | 'join_code' | 'is_active' | 'created_at'> & {
-          voting_block_id?: string;
-          join_code?: string;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['voting_blocks']['Insert']>;
-      };
-      voting_block_members: {
-        Row: {
-          voting_block_member_id: string;
-          voting_block_id: string;
-          user_id: string;
-          is_admin: boolean;
-          joined_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['voting_block_members']['Row'], 'voting_block_member_id' | 'is_admin' | 'joined_at'> & {
-          voting_block_member_id?: string;
-          is_admin?: boolean;
-          joined_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['voting_block_members']['Insert']>;
       };
     };
   };
