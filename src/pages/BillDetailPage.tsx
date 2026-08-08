@@ -12,7 +12,7 @@ import {
   formatIntroducedDate,
 } from '../lib/billUtils';
 import { BillPrioritySection } from '../components/BillPrioritySection';
-import type { Bill, UserVote, RepVote, Representative } from '../lib/types';
+import type { Bill, UserVote, RepVote, Representative, BillVotingBlockPosition } from '../lib/types';
 
 type NavProps = {
   activeTab: NavTab;
@@ -31,16 +31,18 @@ type BillDetailPageProps = {
   billId: string;
   onBack: () => void;
   onNavigateToRep: (repId: string) => void;
+  onNavigateToVotingBlock: (blockId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
   onSignUp?: () => void;
   navProps?: NavProps;
 };
 
-export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onSignUp, navProps }: BillDetailPageProps) {
+export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onSignUp, navProps }: BillDetailPageProps) {
   const { user, profile } = useAuth();
 
   const [bill, setBill] = useState<Bill | null>(null);
+  const [blockPositions, setBlockPositions] = useState<BillVotingBlockPosition[]>([]);
   const [primarySponsorRep, setPrimarySponsorRep] = useState<Pick<Representative, 'representative_id' | 'first_name' | 'last_name'> | null>(null);
   const [cosponsors, setCosponsors] = useState<Pick<Representative, 'representative_id' | 'first_name' | 'last_name'>[]>([]);
   const [tally, setTally] = useState<Tally>({ support_count: 0, oppose_count: 0, total_votes: 0 });
@@ -151,7 +153,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
       setLoading(true);
       setError(null);
       try {
-        const [billRes, tallyRes, userVoteRes, sponsorRes] = await Promise.all([
+        const [billRes, tallyRes, userVoteRes, sponsorRes, blockPositionsRes] = await Promise.all([
           supabase.from('bills').select('*').eq('bill_id', billId).maybeSingle(),
           supabase
             .from('bill_vote_tallies')
@@ -170,7 +172,10 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
             .from('bill_sponsors')
             .select('representative_id, sponsor_type, representatives(representative_id, first_name, last_name)')
             .eq('bill_id', billId),
+          supabase.rpc('get_bill_voting_block_positions' as never, { p_bill_id: billId } as never),
         ]);
+
+        setBlockPositions(((blockPositionsRes as { data: BillVotingBlockPosition[] | null }).data ?? []));
 
         if (billRes.error) throw billRes.error;
         setBill(billRes.data);
@@ -564,6 +569,47 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToHo
               </div>
             )}
           </div>
+
+          {/* ── VOTING BLOCK POSITIONS ── */}
+          {blockPositions.length > 0 && (
+            <div style={{ marginTop: 10, background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>
+                  Voting Block Positions
+                </span>
+              </div>
+              {blockPositions.map((bp, i) => {
+                const supportPct = bp.total_votes > 0 ? Math.round((bp.support_count / bp.total_votes) * 100) : 0;
+                const opposePct = bp.total_votes > 0 ? Math.round((bp.oppose_count / bp.total_votes) * 100) : 0;
+                return (
+                  <button
+                    key={bp.voting_block_id}
+                    onClick={() => onNavigateToVotingBlock(bp.voting_block_id)}
+                    style={{
+                      width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', minHeight: 'unset',
+                      padding: '11px 14px', borderBottom: i < blockPositions.length - 1 ? '1px solid #F4F6F0' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', flexShrink: 0 }}>{bp.name}</span>
+                    {bp.position === 'tied' ? (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6, flexShrink: 0 }}>
+                        Evenly split
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, padding: '3px 8px', borderRadius: 6, flexShrink: 0,
+                        background: bp.position === 'support' ? '#E6F5EE' : '#FEF0EF',
+                        color: bp.position === 'support' ? '#0e6b4a' : '#c0392b',
+                      }}>
+                        {bp.position === 'support' ? supportPct : opposePct}% {bp.position === 'support' ? 'Support' : 'Oppose'} · {bp.total_votes} votes
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* ── REP REVEAL + ACTION ROW ── */}
           {user && showRepReveal && (

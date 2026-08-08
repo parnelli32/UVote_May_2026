@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import type { NavTab } from '../components/BottomNav';
-import type { Bill, UserVote, RepVote } from '../lib/types';
+import type { Bill, UserVote, VotingBlockPublic } from '../lib/types';
 
 type NavProps = {
   activeTab: NavTab;
@@ -33,11 +33,18 @@ type UserProfilePageProps = {
   onNavigateToAbout: () => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToUserVotingHistory: (rows: VoteHistoryRow[]) => void;
+  onNavigateToVotingBlock: (blockId: string) => void;
   navProps: NavProps;
 };
 
-export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToUserVotingHistory, navProps }: UserProfilePageProps) {
+export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToUserVotingHistory, onNavigateToVotingBlock, navProps }: UserProfilePageProps) {
   const { user, profile, districtName, districtUserIds } = useAuth();
+
+  const [myBlocks, setMyBlocks] = useState<VotingBlockPublic[]>([]);
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [joinCode, setJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -70,7 +77,59 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     loadStats();
     loadHistory();
     loadPriorities();
+    loadMyBlocks();
   }, [user, profile?.district_id]);
+
+  async function loadMyBlocks() {
+    if (!user) return;
+    setBlocksLoading(true);
+    try {
+      const { data: memberships, error: membershipErr } = await supabase
+        .from('voting_block_members')
+        .select('voting_block_id')
+        .eq('user_id', user.id);
+      if (membershipErr) throw membershipErr;
+
+      const blockIds = (memberships ?? []).map((m) => m.voting_block_id);
+      if (blockIds.length === 0) {
+        setMyBlocks([]);
+        return;
+      }
+
+      const { data: blocks, error: blocksErr } = await supabase
+        .from('voting_blocks_public')
+        .select('*')
+        .in('voting_block_id', blockIds);
+      if (blocksErr) throw blocksErr;
+      setMyBlocks((blocks ?? []) as VotingBlockPublic[]);
+    } catch (err) {
+      logError({ action: 'load_my_voting_blocks', userId: user.id, errorMessage: extractMsg(err) });
+      setMyBlocks([]);
+    } finally {
+      setBlocksLoading(false);
+    }
+  }
+
+  async function handleJoinBlock() {
+    if (!joinCode.trim() || !user) return;
+    setJoining(true);
+    setJoinError(null);
+    try {
+      const { data: blockId, error } = await supabase.rpc('join_voting_block' as never, { p_code: joinCode.trim().toUpperCase() } as never);
+      if (error) throw error;
+      onNavigateToVotingBlock(blockId as unknown as string);
+    } catch (err) {
+      const msg = extractMsg(err);
+      if (msg.includes('invalid_code')) {
+        setJoinError("That code doesn't match a voting block. Double-check it and try again.");
+      } else {
+        logError({ action: 'join_voting_block', userId: user.id, errorMessage: msg });
+        setJoinError("We couldn't join that voting block right now. Please try again.");
+      }
+    } finally {
+      setJoining(false);
+    }
+  }
 
   async function loadStats() {
     if (!user) return;
@@ -636,6 +695,94 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
           </div>
         );
       })()}
+
+      {/* ── SECTION 3B: VOTING BLOCKS ── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid #E2E8E4',
+        overflow: 'visible',
+      }}>
+        <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0' }}>
+          <span style={{
+            fontSize: 12,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            color: '#94a3b8',
+          }}>
+            Voting Blocks
+          </span>
+        </div>
+
+        {blocksLoading ? (
+          <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span key={delay} className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }} />
+              ))}
+            </div>
+          </div>
+        ) : myBlocks.length > 0 ? (
+          myBlocks.map((b, i) => (
+            <button
+              key={b.voting_block_id}
+              onClick={() => onNavigateToVotingBlock(b.voting_block_id)}
+              style={{
+                width: '100%',
+                padding: '11px 14px',
+                borderBottom: i < myBlocks.length - 1 ? '1px solid #F4F6F0' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'unset',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', display: 'block' }}>{b.name}</span>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                  {b.member_count} member{b.member_count === 1 ? '' : 's'}
+                  {!b.is_active && ' · Inactive — tap to revive'}
+                </span>
+              </div>
+              <i className="fa-solid fa-chevron-right" style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }} />
+            </button>
+          ))
+        ) : (
+          <div style={{ padding: '16px 14px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+              Voting blocks let you combine your vote with a family, union, or community group's shared position on bills.
+            </p>
+          </div>
+        )}
+
+        <div style={{ padding: '12px 14px 14px', borderTop: myBlocks.length > 0 ? '1px solid #F4F6F0' : 'none' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              value={joinCode}
+              onChange={(e) => { setJoinCode(e.target.value); setJoinError(null); }}
+              placeholder="Have a voting block code?"
+              style={{
+                flex: 1, background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8,
+                padding: '10px 11px', fontSize: 13, color: '#0f1724', boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={handleJoinBlock}
+              disabled={joining || !joinCode.trim()}
+              style={{
+                background: '#1B4332', color: 'white', border: 'none', borderRadius: 8,
+                padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                opacity: joining || !joinCode.trim() ? 0.6 : 1, flexShrink: 0,
+              }}
+            >
+              {joining ? '…' : 'Join'}
+            </button>
+          </div>
+          {joinError && (
+            <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600, marginTop: 8 }}>{joinError}</p>
+          )}
+        </div>
+      </div>
 
       {/* ── SECTION 4: VOTING HISTORY ── */}
       <div style={{

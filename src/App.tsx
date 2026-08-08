@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { BillDetailPage } from './pages/BillDetailPage';
 import { RepProfilePage } from './pages/RepProfilePage';
 import { UserProfilePage } from './pages/UserProfilePage';
+import { VotingBlockPage } from './pages/VotingBlockPage';
 import { AdminPage } from './pages/AdminPage';
 import { AboutPage } from './pages/AboutPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
@@ -22,6 +23,7 @@ type Route =
   | { name: 'home' }
   | { name: 'bill'; billId: string }
   | { name: 'rep'; repId: string }
+  | { name: 'votingBlock'; blockId: string }
   | { name: 'profile' }
   | { name: 'admin' }
   | { name: 'about' }
@@ -35,6 +37,8 @@ function parseInitialRoute(): Route {
   if (billMatch) return { name: 'bill', billId: billMatch[1] };
   const repMatch = path.match(/^\/rep\/([^/]+)/);
   if (repMatch) return { name: 'rep', repId: repMatch[1] };
+  const blockMatch = path.match(/^\/block\/([^/]+)/);
+  if (blockMatch) return { name: 'votingBlock', blockId: blockMatch[1] };
   if (path === '/profile') return { name: 'profile' };
   if (path === '/admin') return { name: 'admin' };
   if (path === '/about') return { name: 'about' };
@@ -54,6 +58,8 @@ function AppInner() {
       window.history.pushState({}, '', `/bill/${route.billId}`);
     } else if (route.name === 'rep') {
       window.history.pushState({}, '', `/rep/${route.repId}`);
+    } else if (route.name === 'votingBlock') {
+      window.history.pushState({}, '', `/block/${route.blockId}`);
     } else if (route.name === 'profile') {
       window.history.pushState({}, '', '/profile');
     } else if (route.name === 'admin') {
@@ -77,6 +83,10 @@ function AppInner() {
 
   function navigateToRep(repId: string) {
     setRoute({ name: 'rep', repId });
+  }
+
+  function navigateToVotingBlock(blockId: string) {
+    setRoute({ name: 'votingBlock', blockId });
   }
 
   function navigateHome() {
@@ -178,6 +188,7 @@ function AppInner() {
           billId={route.billId}
           onBack={navigateHome}
           onNavigateToRep={navigateToRep}
+          onNavigateToVotingBlock={navigateToVotingBlock}
           onNavigateToHowItWorks={navigateToHowItWorks}
           onNavigateToAbout={navigateToAbout}
           onSignUp={() => setAuthView('signup')}
@@ -189,6 +200,7 @@ function AppInner() {
         billId={route.billId}
         onBack={navigateHome}
         onNavigateToRep={navigateToRep}
+        onNavigateToVotingBlock={navigateToVotingBlock}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
         navProps={navProps}
@@ -206,6 +218,22 @@ function AppInner() {
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
         onNavigateToRepHistory={(bills, repName) => navigateToRepHistory(route.repId, bills, repName)}
+        navProps={user ? navProps : undefined}
+      />
+    );
+  }
+
+  // Voting block pages are publicly accessible (public blocks are meant to be
+  // visible to reps, staff, and journalists, not just members) — mirrors the
+  // bill detail page's signed-out accessibility above.
+  if (route.name === 'votingBlock') {
+    return (
+      <VotingBlockPage
+        blockId={route.blockId}
+        onBack={navigateHome}
+        onNavigateToBill={navigateToBill}
+        onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToAbout={navigateToAbout}
         navProps={user ? navProps : undefined}
       />
     );
@@ -271,6 +299,7 @@ function AppInner() {
         onNavigateToAbout={navigateToAbout}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToUserVotingHistory={navigateToUserVotingHistory}
+        onNavigateToVotingBlock={navigateToVotingBlock}
         navProps={navProps}
       />
     );
