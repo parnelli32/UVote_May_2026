@@ -38,7 +38,7 @@ type UserProfilePageProps = {
 };
 
 export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToUserVotingHistory, onNavigateToVotingBlock, navProps }: UserProfilePageProps) {
-  const { user, profile, districtName, districtUserIds } = useAuth();
+  const { user, profile, districtName } = useAuth();
 
   const [myBlocks, setMyBlocks] = useState<VotingBlockPublic[]>([]);
   const [blocksLoading, setBlocksLoading] = useState(true);
@@ -150,9 +150,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
         return;
       }
 
-      const billIds = (allVotes ?? []).map((v) => v.bill_id!).filter(Boolean);
-
-      // Get district rep
+      // Get district rep (for the Representation Score RPC's rep argument)
       let districtRepId: string | null = null;
       if (profile?.district_id) {
         const { data: repData } = await supabase
@@ -163,77 +161,25 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
         districtRepId = repData?.representative_id ?? null;
       }
 
-      // Fetch rep votes first — used to filter district alignment and compute rep alignment
-      const repVoteMap = new Map<string, string>();
-      if (districtRepId) {
-        const { data: repVotes } = await supabase
-          .from('rep_votes')
-          .select('bill_id, vote')
-          .eq('representative_id', districtRepId)
-          .in('bill_id', billIds);
-        for (const rv of repVotes ?? []) {
-          if (rv.bill_id) repVoteMap.set(rv.bill_id, rv.vote);
-        }
-      }
+      // District Score and Representation Score — canonical SQL implementations via RPC
+      const [districtRes, repRes] = await Promise.all([
+        supabase.rpc('district_score'),
+        districtRepId
+          ? supabase.rpc('representation_score', { p_representative_id: districtRepId })
+          : Promise.resolve(null),
+      ]);
 
-      // District alignment: only bills the rep also voted on
-      let withMajority = 0;
-      let majorityDeterminable = 0;
+      if (districtRes.error) throw districtRes.error;
+      if (repRes && repRes.error) throw repRes.error;
 
-      if (profile?.district_id && repVoteMap.size > 0) {
-        const districtIds =
-          districtUserIds.size > 0
-            ? districtUserIds
-            : new Set<string>();
-
-        if (districtIds.size > 0) {
-          const { data: districtVotes } = await supabase
-            .from('user_votes')
-            .select('bill_id, vote')
-            .in('user_id', [...districtIds])
-            .in('bill_id', billIds);
-
-          const districtVoteMap = new Map<string, { support: number; oppose: number }>();
-          for (const dv of districtVotes ?? []) {
-            if (!dv.bill_id) continue;
-            const existing = districtVoteMap.get(dv.bill_id) ?? { support: 0, oppose: 0 };
-            if (dv.vote === 'support') existing.support++;
-            else if (dv.vote === 'oppose') existing.oppose++;
-            districtVoteMap.set(dv.bill_id, existing);
-          }
-
-          for (const uv of allVotes ?? []) {
-            if (!uv.bill_id) continue;
-            if (!repVoteMap.has(uv.bill_id)) continue;
-            const tally = districtVoteMap.get(uv.bill_id);
-            if (!tally) continue;
-            const total = tally.support + tally.oppose;
-            if (total < 2) continue;
-            if (tally.support === tally.oppose) continue;
-            majorityDeterminable++;
-            const majorityPosition = tally.support > tally.oppose ? 'support' : 'oppose';
-            if (uv.vote === majorityPosition) withMajority++;
-          }
-        }
-      }
-
-      // Rep alignment
-      let repAlignmentBills = 0;
-      let repMatches = 0;
-
-      for (const uv of allVotes ?? []) {
-        if (!uv.bill_id) continue;
-        const rv = repVoteMap.get(uv.bill_id);
-        if (!rv) continue;
-        repAlignmentBills++;
-        if (uv.vote === rv) repMatches++;
-      }
+      const districtRow = districtRes.data?.[0];
+      const repRow = repRes?.data?.[0];
 
       setStats({
         totalVotes,
-        withMajority,
-        districtAlignment: majorityDeterminable > 0 ? Math.round((withMajority / majorityDeterminable) * 100) : null,
-        repAlignment: repAlignmentBills > 0 ? Math.round((repMatches / repAlignmentBills) * 100) : null,
+        withMajority: districtRow?.matched_bills ?? 0,
+        districtAlignment: districtRow?.score ?? null,
+        repAlignment: repRow?.score ?? null,
       });
     } catch (err) {
       const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
@@ -264,38 +210,15 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
 
       const billIds = votes.map((v) => v.bill_id!).filter(Boolean);
 
-      // District majority per bill
+      // District majority per bill — aggregated server-side (my own district only)
       const districtMajorityMap = new Map<string, 'support' | 'oppose' | null>();
-      if (profile?.district_id) {
-        const districtIds =
-          districtUserIds.size > 0
-            ? districtUserIds
-            : new Set<string>();
-
-        if (districtIds.size > 0) {
-          const { data: districtVotes } = await supabase
-            .from('user_votes')
-            .select('bill_id, vote')
-            .in('user_id', [...districtIds])
-            .in('bill_id', billIds);
-
-          const tallyMap = new Map<string, { support: number; oppose: number }>();
-          for (const dv of districtVotes ?? []) {
-            if (!dv.bill_id) continue;
-            const t = tallyMap.get(dv.bill_id) ?? { support: 0, oppose: 0 };
-            if (dv.vote === 'support') t.support++;
-            else if (dv.vote === 'oppose') t.oppose++;
-            tallyMap.set(dv.bill_id, t);
-          }
-
-          for (const [billId, tally] of tallyMap) {
-            const total = tally.support + tally.oppose;
-            if (total < 2 || tally.support === tally.oppose) {
-              districtMajorityMap.set(billId, null);
-            } else {
-              districtMajorityMap.set(billId, tally.support > tally.oppose ? 'support' : 'oppose');
-            }
-          }
+      const { data: districtTallies } = await supabase.rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+      for (const t of districtTallies ?? []) {
+        const total = t.support_count + t.oppose_count;
+        if (total < 2 || t.support_count === t.oppose_count) {
+          districtMajorityMap.set(t.bill_id, null);
+        } else {
+          districtMajorityMap.set(t.bill_id, t.support_count > t.oppose_count ? 'support' : 'oppose');
         }
       }
 

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import { BillHistoryRow } from '../components/RepBillRows';
@@ -51,8 +50,6 @@ export function RepBillHistoryPage({
   preloadedRepName,
   navProps,
 }: RepBillHistoryPageProps) {
-  const { profile, districtUserIds: cachedDistrictUserIds } = useAuth();
-
   const [rep, setRep] = useState<{ first_name: string; last_name: string; title: string | null; district_id: string | null; legislative_body_id: string | null } | null>(null);
   const [bills, setBills] = useState<EnrichedBill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,76 +100,26 @@ export function RepBillHistoryPage({
           .in('bill_id', billIds);
         if (billsErr) throw billsErr;
 
-        // Step 4 — Determine district user IDs
-        let districtUserIds = new Set<string>();
-        if (repData.district_id) {
-          if (
-            repData.district_id === profile?.district_id &&
-            cachedDistrictUserIds.size > 0
-          ) {
-            districtUserIds = cachedDistrictUserIds;
-          } else {
-            const { data: districtUsers, error: duErr } = await supabase
-              .from('users')
-              .select('user_id')
-              .eq('district_id', repData.district_id);
-            if (duErr) {
-              logError({ action: 'load_district_users_history', userId: null, errorMessage: duErr.message, errorCode: duErr.code ?? null });
-            }
-            districtUserIds = new Set((districtUsers ?? []).map((u: { user_id: string }) => u.user_id));
-          }
-        } else if (repData.legislative_body_id) {
-          const { data: bodyDistricts, error: bdErr } = await supabase
-            .from('districts')
-            .select('district_id')
-            .eq('legislative_body_id', repData.legislative_body_id);
-          if (bdErr) {
-            logError({ action: 'load_body_districts_history', userId: null, errorMessage: bdErr.message, errorCode: bdErr.code ?? null });
-          }
-          const bodyDistrictIds = (bodyDistricts ?? []).map((d) => d.district_id);
-          if (bodyDistrictIds.length > 0) {
-            const { data: bodyUsers, error: buErr } = await supabase
-              .from('users')
-              .select('user_id')
-              .in('district_id', bodyDistrictIds);
-            if (buErr) {
-              logError({ action: 'load_body_users_history', userId: null, errorMessage: buErr.message, errorCode: buErr.code ?? null });
-            }
-            districtUserIds = new Set((bodyUsers ?? []).map((u) => u.user_id));
-          }
-        }
+        // Step 4 — Per-bill district tallies, aggregated server-side via RPC
+        // (the rep's own district/at-large body is resolved from repId inside the function)
+        const { data: historyRows, error: historyErr } = await supabase
+          .rpc('rep_district_bill_history', { p_representative_id: repId });
+        if (historyErr) throw historyErr;
 
-        // Step 5 — Fetch district votes
-        const { data: userVotesData, error: uvErr } = await supabase
-          .from('user_votes')
-          .select('bill_id, vote, user_id')
-          .in('bill_id', billIds);
-        if (uvErr) throw uvErr;
-
-        // Step 6 — Build enriched list
+        // Step 5 — Build enriched list
         const repVoteMap = new Map(
           (repVotes ?? []).map((rv) => [rv.bill_id!, rv])
         );
+        const billsMap = new Map((billsData ?? []).map((b) => [b.bill_id, b]));
 
         const enriched: EnrichedBill[] = [];
-        for (const bill of (billsData ?? [])) {
-          if (bill.passed_by_suspension) continue;
-          const rv = repVoteMap.get(bill.bill_id);
-          if (!rv) continue;
+        for (const h of (historyRows ?? [])) {
+          const bill = billsMap.get(h.bill_id);
+          const rv = repVoteMap.get(h.bill_id);
+          if (!bill || !rv) continue;
 
-          const allVotes = (userVotesData ?? []).filter((uv) => uv.bill_id === bill.bill_id);
-          const districtVotes = districtUserIds.size > 0
-            ? allVotes.filter((uv) => districtUserIds.has(uv.user_id!))
-            : [];
-          const districtSupport = districtVotes.filter((uv) => uv.vote === 'support').length;
-          const districtOppose = districtVotes.filter((uv) => uv.vote === 'oppose').length;
-          const districtTotal = districtSupport + districtOppose;
-          const qualifiesForScore = districtTotal >= 2 && districtSupport !== districtOppose;
-          const districtMajority: 'support' | 'oppose' | null = qualifiesForScore
-            ? districtSupport > districtOppose ? 'support' : 'oppose'
-            : null;
-          const repMatchesDistrict = qualifiesForScore
-            ? (rv.vote === 'support' || rv.vote === 'oppose') && rv.vote === districtMajority
+          const repMatchesDistrict = h.qualifies_for_score
+            ? (rv.vote === 'support' || rv.vote === 'oppose') && rv.vote === h.district_majority
             : null;
 
           enriched.push({
@@ -187,10 +134,10 @@ export function RepBillHistoryPage({
               explanation: rv.explanation,
               created_at: rv.created_at,
             },
-            district_support: districtSupport,
-            district_oppose: districtOppose,
-            qualifies_for_score: qualifiesForScore,
-            district_majority: districtMajority,
+            district_support: h.district_support,
+            district_oppose: h.district_oppose,
+            qualifies_for_score: h.qualifies_for_score,
+            district_majority: h.district_majority,
             rep_matches_district: repMatchesDistrict,
           });
         }
@@ -207,7 +154,7 @@ export function RepBillHistoryPage({
       }
     }
     load();
-  }, [repId, profile?.district_id, cachedDistrictUserIds]);
+  }, [repId]);
 
   // Filtering logic
   let filtered = bills;

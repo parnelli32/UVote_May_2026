@@ -116,7 +116,7 @@ export function UserVotingHistoryPage({
   preloadedRows,
   navProps,
 }: UserVotingHistoryPageProps) {
-  const { user, profile, districtUserIds } = useAuth();
+  const { user, profile } = useAuth();
 
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,24 +167,17 @@ export function UserVotingHistoryPage({
 
         // Steps 2 & 3 — parallel
         const [districtVotesResult, repResult] = await Promise.all([
-          // Step 2 — district votes for majority
+          // Step 2 — district votes for majority, aggregated server-side (my own district only)
           (async () => {
             const majorityMap = new Map<string, { support: number; oppose: number }>();
-            if (profile?.district_id && districtUserIds.size > 0) {
-              const { data: dvData, error: dvErr } = await supabase
-                .from('user_votes')
-                .select('bill_id, vote')
-                .in('user_id', [...districtUserIds])
-                .in('bill_id', billIds);
-              if (dvErr) {
-                logError({ action: 'load_district_votes_history', userId: user!.id, errorMessage: dvErr.message, errorCode: dvErr.code ?? null });
+            if (profile?.district_id) {
+              const { data: dtData, error: dtErr } = await supabase
+                .rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+              if (dtErr) {
+                logError({ action: 'load_district_votes_history', userId: user!.id, errorMessage: dtErr.message, errorCode: dtErr.code ?? null });
               }
-              for (const dv of (dvData ?? [])) {
-                if (!dv.bill_id) continue;
-                const entry = majorityMap.get(dv.bill_id) ?? { support: 0, oppose: 0 };
-                if (dv.vote === 'support') entry.support++;
-                else if (dv.vote === 'oppose') entry.oppose++;
-                majorityMap.set(dv.bill_id, entry);
+              for (const t of (dtData ?? [])) {
+                majorityMap.set(t.bill_id, { support: t.support_count, oppose: t.oppose_count });
               }
             }
             return majorityMap;
@@ -270,7 +263,7 @@ export function UserVotingHistoryPage({
     }
 
     load();
-  }, [user, profile?.district_id, districtUserIds]);
+  }, [user, profile?.district_id]);
 
   // Filtering logic
   let filtered = rows;
