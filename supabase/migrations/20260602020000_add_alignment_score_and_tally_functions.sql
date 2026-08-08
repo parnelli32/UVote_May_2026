@@ -191,7 +191,7 @@ AS $$
 $$;
 
 REVOKE EXECUTE ON FUNCTION constituent_score(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION constituent_score(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION constituent_score(uuid) TO authenticated, anon;
 
 -- ─── city_constituent_score: PUBLIC — rep vs. all UVote users city-wide ───
 CREATE OR REPLACE FUNCTION city_constituent_score(p_representative_id uuid)
@@ -205,7 +205,7 @@ AS $$
 $$;
 
 REVOKE EXECUTE ON FUNCTION city_constituent_score(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION city_constituent_score(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION city_constituent_score(uuid) TO authenticated, anon;
 
 -- ─── district_score: PUBLIC — caller vs. own district's majority ──────────
 CREATE OR REPLACE FUNCTION district_score()
@@ -338,7 +338,7 @@ AS $$
 $$;
 
 REVOKE EXECUTE ON FUNCTION rep_district_bill_history(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION rep_district_bill_history(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION rep_district_bill_history(uuid) TO authenticated, anon;
 
 -- ─── my_district_bill_tallies: PUBLIC — per-bill tallies, caller's own district ───
 CREATE OR REPLACE FUNCTION my_district_bill_tallies(p_bill_ids uuid[])
