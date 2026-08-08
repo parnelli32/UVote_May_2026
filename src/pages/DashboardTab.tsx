@@ -51,7 +51,7 @@ export function DashboardTab({
   onSwitchToBills: () => void;
   onNavigateToHowItWorks: () => void;
 }) {
-  const { user, profile, districtUserIds: cachedDistrictUserIds, districtName } = useAuth();
+  const { user, profile, districtName } = useAuth();
 
   const [rep, setRep] = useState<Pick<Representative, 'representative_id' | 'first_name' | 'last_name' | 'title' | 'party'> | null>(null);
   const [activeBillCount, setActiveBillCount] = useState(0);
@@ -232,10 +232,15 @@ export function DashboardTab({
     load();
   }, [user?.id, profile?.district_id]);
 
-  // Separate effect for alignment score so it re-runs once cachedDistrictUserIds is populated
+  // Separate effect for alignment scores — all three now computed server-side via
+  // the canonical constituent_score / district_score / representation_score RPCs
+  // (same functions RepProfilePage and UserProfilePage call), so this only needs
+  // to know which representative to score against.
   useEffect(() => {
-    if (!user || repRecentVotes.length === 0 || cachedDistrictUserIds.size === 0) {
+    if (!user || !rep) {
       setAlignmentScore(null);
+      setUserDistrictAlignment(null);
+      setUserRepAlignment(null);
       setScoreLoading(false);
       return;
     }
@@ -260,98 +265,38 @@ export function DashboardTab({
           return;
         }
 
-        const repBillIds = repRecentVotes.map(rv => rv.bill_id).filter(Boolean) as string[];
-        if (repBillIds.length === 0) {
-          if (!cancelled) { setAlignmentScore(null); setScoreLoading(false); }
-          return;
-        }
-
-        const { data: districtVotes } = await supabase
-          .from('user_votes')
-          .select('bill_id, vote, user_id')
-          .in('bill_id', repBillIds)
-          .in('user_id', [...cachedDistrictUserIds]);
+        const [constituentRes, districtRes, repAlignRes] = await Promise.all([
+          supabase.rpc('constituent_score', { p_representative_id: rep!.representative_id }),
+          supabase.rpc('district_score'),
+          supabase.rpc('representation_score', { p_representative_id: rep!.representative_id }),
+        ]);
 
         if (cancelled) return;
 
-        const { data: userVotesOnRepBills } = await supabase
-          .from('user_votes')
-          .select('bill_id, vote')
-          .eq('user_id', user!.id)
-          .in('bill_id', repBillIds);
+        if (constituentRes.error) throw constituentRes.error;
+        if (districtRes.error) throw districtRes.error;
+        if (repAlignRes.error) throw repAlignRes.error;
 
-        if (cancelled) return;
+        const newAlignmentScore = constituentRes.data?.[0]?.score ?? null;
+        const newUserDistrictAlignment = districtRes.data?.[0]?.score ?? null;
+        const newUserRepAlignment = repAlignRes.data?.[0]?.score ?? null;
 
-        const userBillVoteMap = new Map(
-          (userVotesOnRepBills ?? []).map(uv => [uv.bill_id!, uv.vote])
-        );
-
-        const repVoteMap = new Map(repRecentVotes.map(rv => [rv.bill_id, rv.vote]));
-
-        let uDistrictMatched = 0, uDistrictQualifying = 0;
-        let uRepMatched = 0, uRepQualifying = 0;
-
-        for (const billId of repBillIds) {
-          const userVote = userBillVoteMap.get(billId);
-          if (!userVote) continue;
-
-          const billVotes = (districtVotes ?? []).filter(v => v.bill_id === billId);
-          const ds = billVotes.filter(v => v.vote === 'support').length;
-          const dopp = billVotes.filter(v => v.vote === 'oppose').length;
-          if (ds + dopp >= 2 && ds !== dopp) {
-            uDistrictQualifying++;
-            const maj = ds > dopp ? 'support' : 'oppose';
-            if (userVote === maj) uDistrictMatched++;
-          }
-
-          const rv = repVoteMap.get(billId);
-          if ((rv === 'support' || rv === 'oppose') && (userVote === 'support' || userVote === 'oppose')) {
-            uRepQualifying++;
-            if (userVote === rv) uRepMatched++;
-          }
-        }
-
-        if (!cancelled) {
-          setUserDistrictAlignment(
-            uDistrictQualifying >= 1
-              ? Math.round((uDistrictMatched / uDistrictQualifying) * 100)
-              : null
-          );
-          setUserRepAlignment(
-            uRepQualifying >= 1
-              ? Math.round((uRepMatched / uRepQualifying) * 100)
-              : null
-          );
-        }
-
-        let matched = 0, qualifying = 0;
-
-        for (const billId of repBillIds) {
-          const billVotes = (districtVotes ?? []).filter(v => v.bill_id === billId);
-          const ds = billVotes.filter(v => v.vote === 'support').length;
-          const dopp = billVotes.filter(v => v.vote === 'oppose').length;
-          if (ds + dopp < 2 || ds === dopp) continue;
-          const majority = ds > dopp ? 'support' : 'oppose';
-          const rv = repVoteMap.get(billId);
-          if (rv !== 'support' && rv !== 'oppose') continue;
-          qualifying++;
-          if (rv === majority) matched++;
-        }
-
-        if (!cancelled) {
-          setAlignmentScore(qualifying >= 2 ? Math.round((matched / qualifying) * 100) : null);
-          setCache(scoreKey, {
-            alignmentScore: qualifying >= 2 ? Math.round((matched / qualifying) * 100) : null,
-            userDistrictAlignment: uDistrictQualifying >= 1 ? Math.round((uDistrictMatched / uDistrictQualifying) * 100) : null,
-            userRepAlignment: uRepQualifying >= 1 ? Math.round((uRepMatched / uRepQualifying) * 100) : null,
-          });
-          setScoreLoading(false);
-        }
+        setAlignmentScore(newAlignmentScore);
+        setUserDistrictAlignment(newUserDistrictAlignment);
+        setUserRepAlignment(newUserRepAlignment);
+        setCache(scoreKey, {
+          alignmentScore: newAlignmentScore,
+          userDistrictAlignment: newUserDistrictAlignment,
+          userRepAlignment: newUserRepAlignment,
+        });
+        setScoreLoading(false);
       } catch (err) {
         if (!cancelled) {
           const msg = (err as { message?: string })?.message ?? String(err);
           logError({ action: 'load_dashboard_scores', userId: user!.id, errorMessage: msg });
           setAlignmentScore(null);
+          setUserDistrictAlignment(null);
+          setUserRepAlignment(null);
           setScoreLoading(false);
         }
       }
@@ -359,7 +304,7 @@ export function DashboardTab({
 
     computeScore();
     return () => { cancelled = true; };
-  }, [user?.id, repRecentVotes, cachedDistrictUserIds]);
+  }, [user?.id, rep?.representative_id]);
 
   if (!profile || !user) return null;
 

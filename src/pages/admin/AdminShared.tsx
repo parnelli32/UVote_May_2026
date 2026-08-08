@@ -19,13 +19,13 @@ export function useDashboardStats() {
   const load = useCallback(async () => {
     const [usersRes, votesRes, billsRes, errorsRes] = await Promise.all([
       supabase.from('users').select('user_id', { count: 'exact', head: true }),
-      supabase.from('user_votes').select('user_vote_id', { count: 'exact', head: true }),
+      supabase.rpc('user_votes_total_count'),
       supabase.from('bills').select('bill_id', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('error_logs').select('log_id', { count: 'exact', head: true }).eq('resolved', false),
     ]);
     setStats({
       users: usersRes.count ?? 0,
-      votes: votesRes.count ?? 0,
+      votes: votesRes.data ?? 0,
       activeBills: billsRes.count ?? 0,
       unresolvedErrors: errorsRes.count ?? 0,
     });

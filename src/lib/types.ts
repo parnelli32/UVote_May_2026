@@ -14,6 +14,8 @@ export type Database = {
           legislative_body_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['legislative_bodies']['Insert']>;
+        Relationships: [];
       };
       districts: {
         Row: {
@@ -27,6 +29,8 @@ export type Database = {
           district_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['districts']['Insert']>;
+        Relationships: [];
       };
       representatives: {
         Row: {
@@ -44,6 +48,8 @@ export type Database = {
           representative_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['representatives']['Insert']>;
+        Relationships: [];
       };
       bills: {
         Row: {
@@ -65,6 +71,8 @@ export type Database = {
           bill_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['bills']['Insert']>;
+        Relationships: [];
       };
       bill_sponsors: {
         Row: {
@@ -78,6 +86,20 @@ export type Database = {
           bill_sponsor_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['bill_sponsors']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'bill_sponsors_bill_id_fkey';
+          columns: ['bill_id'];
+          isOneToOne: false;
+          referencedRelation: 'bills';
+          referencedColumns: ['bill_id'];
+        }, {
+          foreignKeyName: 'bill_sponsors_representative_id_fkey';
+          columns: ['representative_id'];
+          isOneToOne: false;
+          referencedRelation: 'representatives';
+          referencedColumns: ['representative_id'];
+        }];
       };
       users: {
         Row: {
@@ -94,6 +116,13 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['users']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'users_district_id_fkey';
+          columns: ['district_id'];
+          isOneToOne: false;
+          referencedRelation: 'districts';
+          referencedColumns: ['district_id'];
+        }];
       };
       user_votes: {
         Row: {
@@ -104,10 +133,19 @@ export type Database = {
           explanation: string | null;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['user_votes']['Row'], 'user_vote_id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['user_votes']['Row'], 'user_vote_id' | 'created_at' | 'explanation'> & {
           user_vote_id?: string;
           created_at?: string;
+          explanation?: string | null;
         };
+        Update: Partial<Database['public']['Tables']['user_votes']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'user_votes_bill_id_fkey';
+          columns: ['bill_id'];
+          isOneToOne: false;
+          referencedRelation: 'bills';
+          referencedColumns: ['bill_id'];
+        }];
       };
       rep_votes: {
         Row: {
@@ -118,10 +156,25 @@ export type Database = {
           explanation: string | null;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['rep_votes']['Row'], 'rep_vote_id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['rep_votes']['Row'], 'rep_vote_id' | 'created_at' | 'explanation'> & {
           rep_vote_id?: string;
           created_at?: string;
+          explanation?: string | null;
         };
+        Update: Partial<Database['public']['Tables']['rep_votes']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'rep_votes_bill_id_fkey';
+          columns: ['bill_id'];
+          isOneToOne: false;
+          referencedRelation: 'bills';
+          referencedColumns: ['bill_id'];
+        }, {
+          foreignKeyName: 'rep_votes_representative_id_fkey';
+          columns: ['representative_id'];
+          isOneToOne: false;
+          referencedRelation: 'representatives';
+          referencedColumns: ['representative_id'];
+        }];
       };
       error_logs: {
         Row: {
@@ -137,6 +190,31 @@ export type Database = {
           log_id?: string;
           created_at?: string;
         };
+        Update: Partial<Database['public']['Tables']['error_logs']['Insert']>;
+        Relationships: [];
+      };
+      bill_priorities: {
+        Row: {
+          priority_id: string;
+          user_id: string;
+          bill_id: string;
+          legislative_body_id: string;
+          priority_type: string;
+          statement: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['bill_priorities']['Row'], 'priority_id' | 'created_at'> & {
+          priority_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['bill_priorities']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'bill_priorities_bill_id_fkey';
+          columns: ['bill_id'];
+          isOneToOne: false;
+          referencedRelation: 'bills';
+          referencedColumns: ['bill_id'];
+        }];
       };
       voting_blocks: {
         Row: {
@@ -155,6 +233,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['voting_blocks']['Insert']>;
+        Relationships: [];
       };
       voting_block_members: {
         Row: {
@@ -170,6 +249,80 @@ export type Database = {
           joined_at?: string;
         };
         Update: Partial<Database['public']['Tables']['voting_block_members']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'voting_block_members_voting_block_id_fkey';
+          columns: ['voting_block_id'];
+          isOneToOne: false;
+          referencedRelation: 'voting_blocks';
+          referencedColumns: ['voting_block_id'];
+        }];
+      };
+    };
+    Views: {
+      bill_vote_tallies: {
+        Row: {
+          bill_id: string;
+          support_count: number;
+          oppose_count: number;
+          total_votes: number;
+        };
+        Relationships: [];
+      };
+      voting_blocks_public: {
+        Row: {
+          voting_block_id: string;
+          name: string;
+          visibility: 'private' | 'public';
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          member_count: number;
+        };
+        Relationships: [];
+      };
+    };
+    Functions: {
+      // Rep vs. their own district's (or at-large body's) vote majority.
+      constituent_score: {
+        Args: { p_representative_id: string };
+        Returns: { score: number | null; qualifying_bills: number | null }[];
+      };
+      // Rep vs. all UVote users city-wide.
+      city_constituent_score: {
+        Args: { p_representative_id: string };
+        Returns: { score: number | null; qualifying_bills: number | null }[];
+      };
+      // Calling user vs. their own district's majority (bills their rep also voted on).
+      district_score: {
+        Args: Record<string, never>;
+        Returns: { score: number | null; qualifying_bills: number | null; matched_bills: number | null }[];
+      };
+      // Calling user vs. a given representative's votes.
+      representation_score: {
+        Args: { p_representative_id: string };
+        Returns: { score: number | null; total: number; matched: number; mismatched: number }[];
+      };
+      // Per-bill district support/oppose tallies for every bill a rep voted on.
+      rep_district_bill_history: {
+        Args: { p_representative_id: string };
+        Returns: {
+          bill_id: string;
+          rep_vote: string;
+          district_support: number;
+          district_oppose: number;
+          qualifies_for_score: boolean;
+          district_majority: 'support' | 'oppose' | null;
+        }[];
+      };
+      // Per-bill support/oppose tallies among the calling user's own district.
+      my_district_bill_tallies: {
+        Args: { p_bill_ids: string[] };
+        Returns: { bill_id: string; support_count: number; oppose_count: number }[];
+      };
+      // Total row count of user_votes (admin dashboard stat).
+      user_votes_total_count: {
+        Args: Record<string, never>;
+        Returns: number;
       };
     };
   };

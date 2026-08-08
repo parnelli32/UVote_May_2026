@@ -51,7 +51,7 @@ type MyAlignmentScore = {
 type AtLargeRep = Pick<Representative, 'representative_id' | 'first_name' | 'last_name' | 'title'>;
 
 export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToRepHistory, navProps }: RepProfilePageProps) {
-  const { user, profile, districtUserIds: cachedDistrictUserIds } = useAuth();
+  const { user } = useAuth();
 
   const [rep, setRep] = useState<Representative | null>(null);
   const [districtScore, setDistrictScore] = useState<AlignmentScore>(undefined as unknown as AlignmentScore);
@@ -93,7 +93,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
     }
   }, [repId, user?.id]);
 
-  const calculateScores = useCallback(async (repData: Representative) => {
+  const calculateScores = useCallback(async () => {
     setScoresLoading(true);
     try {
       // Fetch all rep_votes for this rep
@@ -124,112 +124,38 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
       const suspensionBillCount = (billsData ?? []).filter(b => b.passed_by_suspension).length;
       setSuspensionCount(suspensionBillCount);
 
-      // Fetch user_votes for all bills voted on by this rep
-      const userVotesRes = await supabase
-        .from('user_votes')
-        .select('bill_id, vote, user_id')
-        .in('bill_id', billIds);
+      // Per-bill district tallies — aggregated server-side via SECURITY DEFINER RPC
+      // (bill_ids the rep voted on are resolved from repId inside the function itself,
+      // so this call needs no bill_id argument).
+      const { data: historyRows, error: historyErr } = await supabase
+        .rpc('rep_district_bill_history', { p_representative_id: repId });
+      if (historyErr) throw historyErr;
 
-      if (userVotesRes.error) throw userVotesRes.error;
-
-      const userVotesData = userVotesRes.data;
-
-      // Fetch user district_ids — for district reps use their district directly;
-      // for at-large reps (null district_id) use all districts in the legislative body.
-      let districtUserIds = new Set<string>();
-      if (repData.district_id) {
-        if (
-          repData.district_id === profile?.district_id &&
-          cachedDistrictUserIds.size > 0
-        ) {
-          districtUserIds = cachedDistrictUserIds;
-        } else {
-          const { data: districtUsers, error: duErr } = await supabase
-            .from('users')
-            .select('user_id')
-            .eq('district_id', repData.district_id);
-          if (duErr) {
-            logError({
-              action: 'load_district_users',
-              userId: user?.id ?? null,
-              errorMessage: duErr.message,
-              errorCode: duErr.code ?? null,
-            });
-          }
-          districtUserIds = new Set(
-            (districtUsers ?? []).map(
-              (u: { user_id: string }) => u.user_id
-            )
-          );
-        }
-      } else if (repData.legislative_body_id) {
-        // At-large: fetch all districts in this legislative body, then all users in those districts
-        const { data: bodyDistricts, error: bdErr } = await supabase
-          .from('districts')
-          .select('district_id')
-          .eq('legislative_body_id', repData.legislative_body_id);
-        if (bdErr) {
-          logError({
-            action: 'load_body_districts',
-            userId: user?.id ?? null,
-            errorMessage: bdErr.message,
-            errorCode: bdErr.code ?? null,
-          });
-        }
-        const bodyDistrictIds = (bodyDistricts ?? []).map((d) => d.district_id);
-        if (bodyDistrictIds.length > 0) {
-          const { data: bodyUsers, error: buErr } = await supabase
-            .from('users')
-            .select('user_id')
-            .in('district_id', bodyDistrictIds);
-          if (buErr) {
-            logError({
-              action: 'load_body_users',
-              userId: user?.id ?? null,
-              errorMessage: buErr.message,
-              errorCode: buErr.code ?? null,
-            });
-          }
-          districtUserIds = new Set((bodyUsers ?? []).map((u) => u.user_id));
-        }
-      }
-
+      const billsMap = new Map((billsData ?? []).map((b) => [b.bill_id, b]));
       const repVoteMap = new Map<string, RepVote>(
         (repVotes ?? []).map((rv) => [rv.bill_id!, rv as RepVote])
       );
 
-      // Build bill history with per-bill tallies
+      // Build bill history with per-bill tallies (suspended bills are already
+      // excluded by rep_district_bill_history, same as the prior client-side logic)
       const enriched: BillWithRepVote[] = [];
 
-      for (const bill of (billsData ?? [])) {
-        const rv = repVoteMap.get(bill.bill_id);
-        if (!rv) continue;
-        if (bill.passed_by_suspension) continue;
+      for (const h of (historyRows ?? [])) {
+        const bill = billsMap.get(h.bill_id);
+        const rv = repVoteMap.get(h.bill_id);
+        if (!bill || !rv) continue;
 
-        const allVotesForBill = (userVotesData ?? []).filter((uv) => uv.bill_id === bill.bill_id);
-
-        // District tallies — districtUserIds is populated for both district and at-large reps
-        const districtVotes = districtUserIds.size > 0
-          ? allVotesForBill.filter((uv) => districtUserIds.has(uv.user_id!))
-          : [];
-        const districtSupport = districtVotes.filter((uv) => uv.vote === 'support').length;
-        const districtOppose = districtVotes.filter((uv) => uv.vote === 'oppose').length;
-        const districtTotal = districtSupport + districtOppose;
-        const qualifiesForScore = districtTotal >= 2 && districtSupport !== districtOppose;
-        const districtMajority: 'support' | 'oppose' | null = qualifiesForScore
-          ? districtSupport > districtOppose ? 'support' : 'oppose'
-          : null;
-        const repMatchesDistrict = qualifiesForScore
-          ? (rv.vote === 'support' || rv.vote === 'oppose') && rv.vote === districtMajority
+        const repMatchesDistrict = h.qualifies_for_score
+          ? (rv.vote === 'support' || rv.vote === 'oppose') && rv.vote === h.district_majority
           : null;
 
         enriched.push({
           ...bill,
           rep_vote: rv,
-          district_support: districtSupport,
-          district_oppose: districtOppose,
-          qualifies_for_score: qualifiesForScore,
-          district_majority: districtMajority,
+          district_support: h.district_support,
+          district_oppose: h.district_oppose,
+          qualifies_for_score: h.qualifies_for_score,
+          district_majority: h.district_majority,
           rep_matches_district: repMatchesDistrict,
         });
       }
@@ -267,70 +193,49 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
         setPassedSponsoredBills([]);
       }
 
-      // District alignment score
+      // District (Constituent) alignment score — canonical SQL implementation via RPC
       try {
-        const qualifyingBills = enriched.filter((b) => b.qualifies_for_score);
-        if (qualifyingBills.length >= 2) {
-          const matched = qualifyingBills.filter((b) => b.rep_matches_district === true).length;
-          setDistrictScore({ score: Math.round((matched / qualifyingBills.length) * 100), qualifying: qualifyingBills.length });
-        } else {
-          setDistrictScore(null);
-        }
+        const { data, error: csErr } = await supabase.rpc('constituent_score', { p_representative_id: repId });
+        if (csErr) throw csErr;
+        const row = data?.[0];
+        setDistrictScore(
+          row && row.score !== null && row.qualifying_bills !== null
+            ? { score: row.score, qualifying: row.qualifying_bills }
+            : null
+        );
       } catch (err) {
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
         logError({ action: 'calculate_district_alignment', userId: user?.id ?? null, errorMessage: msg });
         setDistrictScore(null);
       }
 
-      // City alignment score
+      // City alignment score — canonical SQL implementation via RPC
       try {
-        const cityQualifying: { matches: boolean }[] = [];
-        for (const b of enriched) {
-          const allVotes = (userVotesData ?? []).filter((uv) => uv.bill_id === b.bill_id);
-          const citySupport = allVotes.filter((uv) => uv.vote === 'support').length;
-          const cityOppose = allVotes.filter((uv) => uv.vote === 'oppose').length;
-          if (citySupport + cityOppose < 10) continue;
-          if (citySupport === cityOppose) continue;
-          const cityMajority = citySupport > cityOppose ? 'support' : 'oppose';
-          const repVote = b.rep_vote.vote;
-          if (repVote !== 'support' && repVote !== 'oppose') continue;
-          cityQualifying.push({ matches: repVote === cityMajority });
-        }
-        if (cityQualifying.length >= 2) {
-          const matched = cityQualifying.filter((q) => q.matches).length;
-          setCityScore({ score: Math.round((matched / cityQualifying.length) * 100), qualifying: cityQualifying.length });
-        } else {
-          setCityScore(null);
-        }
+        const { data, error: ccErr } = await supabase.rpc('city_constituent_score', { p_representative_id: repId });
+        if (ccErr) throw ccErr;
+        const row = data?.[0];
+        setCityScore(
+          row && row.score !== null && row.qualifying_bills !== null
+            ? { score: row.score, qualifying: row.qualifying_bills }
+            : null
+        );
       } catch (err) {
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
         logError({ action: 'calculate_city_alignment', userId: user?.id ?? null, errorMessage: msg });
         setCityScore(null);
       }
 
-      // Personal alignment score (logged-in user vs. this rep)
+      // Personal alignment score (logged-in user vs. this rep) — canonical SQL implementation via RPC
       try {
         if (user?.id) {
-          const myVotes = (userVotesData ?? []).filter((uv) => uv.user_id === user.id);
-          const repVoteMap = new Map<string, string>(
-            (repVotes ?? []).map((rv) => [rv.bill_id!, rv.vote])
+          const { data, error: rsErr } = await supabase.rpc('representation_score', { p_representative_id: repId });
+          if (rsErr) throw rsErr;
+          const row = data?.[0];
+          setMyAlignmentScore(
+            row && row.total > 0
+              ? { score: row.score ?? 0, total: row.total, matched: row.matched, mismatched: row.mismatched }
+              : null
           );
-          let matched = 0;
-          let mismatched = 0;
-          for (const uv of myVotes) {
-            if (!uv.bill_id) continue;
-            const rv = repVoteMap.get(uv.bill_id);
-            if (!rv || (rv !== 'support' && rv !== 'oppose')) continue;
-            if (uv.vote !== 'support' && uv.vote !== 'oppose') continue;
-            if (uv.vote === rv) matched++;
-            else mismatched++;
-          }
-          const total = matched + mismatched;
-          if (total > 0) {
-            setMyAlignmentScore({ score: Math.round((matched / total) * 100), total, matched, mismatched });
-          } else {
-            setMyAlignmentScore(null);
-          }
         } else {
           setMyAlignmentScore(null);
         }
@@ -375,7 +280,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
       setLoading(false);
       if (!repData) return;
       await Promise.all([
-        calculateScores(repData),
+        calculateScores(),
         loadAtLargeReps(repData),
       ]);
     }

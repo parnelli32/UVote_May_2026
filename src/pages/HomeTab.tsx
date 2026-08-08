@@ -10,10 +10,10 @@ import type { BillWithTally } from '../components/BillCard';
 import { BottomNav } from '../components/BottomNav';
 
 export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToBill: (billId: string) => void; onNavigateToAbout: () => void }) {
-  const { user, profile, districtUserIds } = useAuth();
+  const { user, profile } = useAuth();
   const [bills, setBills] = useState<BillWithTally[]>([]);
   const [userVotes, setUserVotes] = useState<Map<string, UserVote>>(new Map());
-  const [districtVotes, setDistrictVotes] = useState<{ bill_id: string; user_id: string; vote: string }[]>([]);
+  const [districtTallies, setDistrictTallies] = useState<{ bill_id: string; support_count: number; oppose_count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,13 +33,13 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
         type BillsCache = {
           bills: BillWithTally[];
           userVotes: [string, UserVote][];
-          districtVotes: { bill_id: string; user_id: string; vote: string }[];
+          districtTallies: { bill_id: string; support_count: number; oppose_count: number }[];
         };
         const cached = getCache<BillsCache>(cacheKey, TTL.SHORT);
         if (cached) {
           setBills(cached.bills);
           setUserVotes(new Map(cached.userVotes));
-          setDistrictVotes(cached.districtVotes);
+          setDistrictTallies(cached.districtTallies);
           setLoading(false);
           return;
         }
@@ -96,11 +96,6 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
         const tallies = talliesRes.data;
         const uvData = uvRes.data;
 
-        const districtUserIdSet =
-          districtUserIds.size > 0
-            ? districtUserIds
-            : new Set<string>();
-
         const tallyMap = new Map<string, { support_count: number; oppose_count: number; total_votes: number }>(
           (tallies ?? []).map((t) => [
             t.bill_id,
@@ -124,26 +119,24 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
           );
         }
 
-        // Fetch district votes for "Matched Majority" filter (depends on districtUserIdSet from parallel fetch)
-        let dVotes: { bill_id: string; user_id: string; vote: string }[] = [];
+        // Fetch district tallies for "Matched Majority" filter — aggregated server-side,
+        // scoped to the signed-in user's own district (safe for an arbitrary bill_id list
+        // since membership is always resolved from auth.uid(), never client-supplied)
+        let dTallies: { bill_id: string; support_count: number; oppose_count: number }[] = [];
 
-        if (districtUserIdSet.size > 0) {
-          const { data: dv } = await supabase
-            .from('user_votes')
-            .select('bill_id, user_id, vote')
-            .in('bill_id', billIds)
-            .in('user_id', [...districtUserIdSet]);
-          dVotes = dv ?? [];
+        if (user) {
+          const { data: dt } = await supabase.rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+          dTallies = dt ?? [];
         }
 
-        setDistrictVotes(dVotes);
+        setDistrictTallies(dTallies);
 
         setCache(cacheKey, {
           bills: merged,
           userVotes: user
             ? [...new Map((uvData ?? []).map((uv) => [uv.bill_id!, uv])).entries()]
             : [],
-          districtVotes: dVotes,
+          districtTallies: dTallies,
         });
       } catch (err) {
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
@@ -169,9 +162,9 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
     else if (voteFilter === 'matched-majority') result = result.filter(b => {
       const uv = userVotes.get(b.bill_id);
       if (!uv) return false;
-      const bvs = districtVotes.filter(v => v.bill_id === b.bill_id);
-      const ds = bvs.filter(v => v.vote === 'support').length;
-      const dop = bvs.filter(v => v.vote === 'oppose').length;
+      const t = districtTallies.find(v => v.bill_id === b.bill_id);
+      const ds = t?.support_count ?? 0;
+      const dop = t?.oppose_count ?? 0;
       if (ds + dop < 2 || ds === dop) return false;
       const maj = ds > dop ? 'support' : 'oppose';
       return uv.vote === maj;
@@ -192,7 +185,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
     });
 
     return result;
-  }, [bills, statusFilter, voteFilter, topicFilter, sortBy, userVotes, districtVotes]);
+  }, [bills, statusFilter, voteFilter, topicFilter, sortBy, userVotes, districtTallies]);
 
   const activeFilterCount = [
     statusFilter !== 'active',
