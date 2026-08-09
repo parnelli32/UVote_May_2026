@@ -358,7 +358,7 @@ RETURNS TABLE (
   support_count bigint,
   oppose_count bigint,
   total_votes bigint,
-  position text
+  vote_position text
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -390,7 +390,7 @@ BEGIN
       WHEN COUNT(*) FILTER (WHERE uv.vote = 'support') = COUNT(*) FILTER (WHERE uv.vote = 'oppose') THEN 'tied'
       WHEN COUNT(*) FILTER (WHERE uv.vote = 'support') > COUNT(*) FILTER (WHERE uv.vote = 'oppose') THEN 'support'
       ELSE 'oppose'
-    END AS position
+    END AS vote_position
   FROM user_votes uv
   JOIN voting_block_members m ON m.user_id = uv.user_id
   WHERE m.voting_block_id = p_block_id
@@ -458,7 +458,7 @@ RETURNS TABLE (
   support_count bigint,
   oppose_count bigint,
   total_votes bigint,
-  position text
+  vote_position text
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -476,7 +476,7 @@ BEGIN
       WHEN COUNT(*) FILTER (WHERE uv.vote = 'support') = COUNT(*) FILTER (WHERE uv.vote = 'oppose') THEN 'tied'
       WHEN COUNT(*) FILTER (WHERE uv.vote = 'support') > COUNT(*) FILTER (WHERE uv.vote = 'oppose') THEN 'support'
       ELSE 'oppose'
-    END AS position
+    END AS vote_position
   FROM voting_blocks vb
   JOIN voting_block_members m ON m.voting_block_id = vb.voting_block_id
   JOIN user_votes uv ON uv.user_id = m.user_id AND uv.bill_id = p_bill_id

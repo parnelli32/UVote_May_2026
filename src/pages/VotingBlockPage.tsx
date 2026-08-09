@@ -353,7 +353,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
                 <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f1724', marginBottom: 6, lineHeight: 1.35 }}>
                   {p.bill?.title ?? 'Untitled Bill'}
                 </span>
-                {p.position === 'tied' ? (
+                {p.vote_position === 'tied' ? (
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
                     Evenly split · {p.total_votes} votes
                   </span>
