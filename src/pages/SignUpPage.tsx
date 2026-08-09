@@ -7,9 +7,10 @@ import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 
 type SignUpPageProps = {
   onSwitchToSignIn: () => void;
+  onNavigateToElectionCenter: () => void;
 };
 
-export function SignUpPage({ onSwitchToSignIn }: SignUpPageProps) {
+export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: SignUpPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -286,6 +287,18 @@ export function SignUpPage({ onSwitchToSignIn }: SignUpPageProps) {
             </button>
           </p>
         </div>
+
+        <button
+          onClick={onNavigateToElectionCenter}
+          style={{
+            background: 'none', border: 'none', padding: 0,
+            fontSize: 11, color: 'rgba(255,255,255,0.5)',
+            marginTop: 16, display: 'block', textAlign: 'center',
+            cursor: 'pointer', width: '100%',
+          }}
+        >
+          Election Center
+        </button>
       </div>
     </div>
   );

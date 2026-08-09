@@ -6,9 +6,10 @@ import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 type SignInPageProps = {
   onSwitchToSignUp: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
 };
 
-export function SignInPage({ onSwitchToSignUp, onNavigateToAbout }: SignInPageProps) {
+export function SignInPage({ onSwitchToSignUp, onNavigateToAbout, onNavigateToElectionCenter }: SignInPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -132,17 +133,21 @@ export function SignInPage({ onSwitchToSignUp, onNavigateToAbout }: SignInPagePr
           </p>
         </div>
 
-        <button
-          onClick={onNavigateToAbout}
-          style={{
-            background: 'none', border: 'none', padding: 0,
-            fontSize: 11, color: 'rgba(255,255,255,0.5)',
-            marginTop: 16, display: 'block', textAlign: 'center',
-            cursor: 'pointer', width: '100%',
-          }}
-        >
-          About UVote
-        </button>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={onNavigateToElectionCenter}
+            style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
+          >
+            Election Center
+          </button>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>·</span>
+          <button
+            onClick={onNavigateToAbout}
+            style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}
+          >
+            About UVote
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -305,9 +305,20 @@ function AppInner() {
 
   if (!user) {
     if (authView === 'signup') {
-      return <SignUpPage onSwitchToSignIn={() => setAuthView('signin')} />;
+      return (
+        <SignUpPage
+          onSwitchToSignIn={() => setAuthView('signin')}
+          onNavigateToElectionCenter={navigateToElectionCenter}
+        />
+      );
     }
-    return <SignInPage onSwitchToSignUp={() => setAuthView('signup')} onNavigateToAbout={navigateToAbout} />;
+    return (
+      <SignInPage
+        onSwitchToSignUp={() => setAuthView('signup')}
+        onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
+      />
+    );
   }
 
   if (route.name === 'admin') {
