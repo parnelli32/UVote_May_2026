@@ -3,7 +3,8 @@
 
   1. Changes
     - `user_demographics`: one row per user, nullable columns for each of the census
-      categories below. Own-row SELECT/INSERT/UPDATE only — see privacy note.
+      categories below. Own-row SELECT only via RLS; all writes go through
+      `submit_demographics` — see privacy note.
     - `voting_blocks` gains `is_system`, `system_category`, `system_value` so a census
       answer can map to a well-known citywide block, plus a partial unique index so
       each (category, value) pair has exactly one system block, without colliding with
@@ -86,17 +87,6 @@ CREATE POLICY "Users can read their own demographics"
   ON user_demographics FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own demographics"
-  ON user_demographics FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own demographics"
-  ON user_demographics FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
 
 -- ── voting_blocks: system-block columns ─────────────────────────────────────────
 
