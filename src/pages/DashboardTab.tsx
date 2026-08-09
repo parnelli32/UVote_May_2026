@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getTopicTag } from '../lib/billUtils';
 import { SkeletonPulse, DashboardSkeleton } from '../components/DashboardSkeleton';
 import { getCache, setCache, TTL } from '../lib/cache';
+import { DemographicsPrompt } from '../components/DemographicsPrompt';
 import type { Representative } from '../lib/types';
 
 // ─── DASHBOARD TAB ──────────────────────────────────────────────────────────
@@ -373,6 +374,8 @@ export function DashboardTab({
           </span>
         </div>
       </div>
+
+      <DemographicsPrompt />
 
       {/* ── YOUR REPRESENTATIVE CARD ── */}
       {rep && (
