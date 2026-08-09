@@ -225,12 +225,18 @@ export type Database = {
           visibility: 'private' | 'public';
           is_active: boolean;
           created_at: string;
+          is_system: boolean;
+          system_category: string | null;
+          system_value: string | null;
         };
-        Insert: Omit<Database['public']['Tables']['voting_blocks']['Row'], 'voting_block_id' | 'join_code' | 'is_active' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['voting_blocks']['Row'], 'voting_block_id' | 'join_code' | 'is_active' | 'created_at' | 'is_system' | 'system_category' | 'system_value'> & {
           voting_block_id?: string;
           join_code?: string;
           is_active?: boolean;
           created_at?: string;
+          is_system?: boolean;
+          system_category?: string | null;
+          system_value?: string | null;
         };
         Update: Partial<Database['public']['Tables']['voting_blocks']['Insert']>;
         Relationships: [];
@@ -255,6 +261,33 @@ export type Database = {
           isOneToOne: false;
           referencedRelation: 'voting_blocks';
           referencedColumns: ['voting_block_id'];
+        }];
+      };
+      user_demographics: {
+        Row: {
+          user_id: string;
+          race_ethnicity: string | null;
+          hispanic_latino: boolean | null;
+          education: string | null;
+          annual_earnings: string | null;
+          homeownership: string | null;
+          age_bracket: string | null;
+          employment_status: string | null;
+          veteran: boolean | null;
+          disability: boolean | null;
+          household_type: string | null;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_demographics']['Row'], 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_demographics']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'user_demographics_user_id_fkey';
+          columns: ['user_id'];
+          isOneToOne: true;
+          referencedRelation: 'users';
+          referencedColumns: ['user_id'];
         }];
       };
     };
@@ -324,6 +357,24 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
+      // Upserts the caller's user_demographics row and joins the matching system
+      // voting block for each newly-non-null category. The only path that may write
+      // user_demographics or create/join a system voting block.
+      submit_demographics: {
+        Args: {
+          p_race_ethnicity?: string | null;
+          p_hispanic_latino?: boolean | null;
+          p_education?: string | null;
+          p_annual_earnings?: string | null;
+          p_homeownership?: string | null;
+          p_age_bracket?: string | null;
+          p_employment_status?: string | null;
+          p_veteran?: boolean | null;
+          p_disability?: boolean | null;
+          p_household_type?: string | null;
+        };
+        Returns: void;
+      };
     };
   };
 };
@@ -389,3 +440,58 @@ export type RepVote = Database['public']['Tables']['rep_votes']['Row'];
 export type ErrorLog = Database['public']['Tables']['error_logs']['Row'];
 export type VotingBlock = Database['public']['Tables']['voting_blocks']['Row'];
 export type VotingBlockMember = Database['public']['Tables']['voting_block_members']['Row'];
+export type UserDemographics = Database['public']['Tables']['user_demographics']['Row'];
+
+// The 9 census categories `submit_demographics` accepts, keyed by system_category slug.
+export const RACE_ETHNICITY_OPTIONS = [
+  { value: 'white', label: 'White' },
+  { value: 'black_african_american', label: 'Black or African American' },
+  { value: 'asian', label: 'Asian' },
+  { value: 'american_indian_alaska_native', label: 'American Indian or Alaska Native' },
+  { value: 'native_hawaiian_pacific_islander', label: 'Native Hawaiian or Pacific Islander' },
+  { value: 'two_or_more_races', label: 'Two or more races' },
+] as const;
+
+export const EDUCATION_OPTIONS = [
+  { value: 'less_than_high_school', label: 'Less than high school' },
+  { value: 'high_school_or_ged', label: 'High school / GED' },
+  { value: 'some_college_or_associates', label: "Some college or associate's" },
+  { value: 'bachelors', label: "Bachelor's" },
+  { value: 'graduate_or_professional', label: 'Graduate or professional' },
+] as const;
+
+export const ANNUAL_EARNINGS_OPTIONS = [
+  { value: 'under_25k', label: 'Under $25k' },
+  { value: '25k_50k', label: '$25k - $50k' },
+  { value: '50k_75k', label: '$50k - $75k' },
+  { value: '75k_100k', label: '$75k - $100k' },
+  { value: '100k_150k', label: '$100k - $150k' },
+  { value: '150k_plus', label: '$150k+' },
+] as const;
+
+export const HOMEOWNERSHIP_OPTIONS = [
+  { value: 'own', label: 'Own' },
+  { value: 'rent', label: 'Rent' },
+] as const;
+
+export const AGE_BRACKET_OPTIONS = [
+  { value: '18_24', label: '18-24' },
+  { value: '25_34', label: '25-34' },
+  { value: '35_44', label: '35-44' },
+  { value: '45_54', label: '45-54' },
+  { value: '55_64', label: '55-64' },
+  { value: '65_plus', label: '65+' },
+] as const;
+
+export const EMPLOYMENT_STATUS_OPTIONS = [
+  { value: 'employed', label: 'Employed' },
+  { value: 'unemployed', label: 'Unemployed' },
+  { value: 'not_in_labor_force', label: 'Not in labor force' },
+] as const;
+
+export const HOUSEHOLD_TYPE_OPTIONS = [
+  { value: 'living_alone', label: 'Living alone' },
+  { value: 'married_or_partnered', label: 'Married / partnered' },
+  { value: 'family_with_children', label: 'Family with children' },
+  { value: 'multigenerational', label: 'Multigenerational' },
+] as const;

@@ -6,6 +6,9 @@ import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import type { NavTab } from '../components/BottomNav';
 import type { Bill, UserVote, VotingBlockPublic } from '../lib/types';
+import { DemographicsFields } from '../components/DemographicsFields';
+import { EMPTY_DEMOGRAPHICS_ANSWERS, demographicsAnswersToRpcArgs } from '../lib/demographics';
+import type { DemographicsAnswers } from '../lib/demographics';
 
 type NavProps = {
   activeTab: NavTab;
@@ -64,6 +67,12 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
   const [prioritiesLoading, setPrioritiesLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  const [demographicsAnswers, setDemographicsAnswers] = useState<DemographicsAnswers>(EMPTY_DEMOGRAPHICS_ANSWERS);
+  const [demographicsLoading, setDemographicsLoading] = useState(true);
+  const [demographicsSaving, setDemographicsSaving] = useState(false);
+  const [demographicsError, setDemographicsError] = useState<string | null>(null);
+  const [demographicsSaved, setDemographicsSaved] = useState(false);
+
   const initials = profile?.username
     ? profile.username.charAt(0).toUpperCase()
     : '?';
@@ -78,7 +87,57 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     loadHistory();
     loadPriorities();
     loadMyBlocks();
+    loadDemographics();
   }, [user, profile?.district_id]);
+
+  async function loadDemographics() {
+    if (!user) return;
+    setDemographicsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_demographics')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setDemographicsAnswers({
+          race_ethnicity: data.race_ethnicity ?? '',
+          hispanic_latino: data.hispanic_latino === null ? '' : String(data.hispanic_latino),
+          education: data.education ?? '',
+          annual_earnings: data.annual_earnings ?? '',
+          homeownership: data.homeownership ?? '',
+          age_bracket: data.age_bracket ?? '',
+          employment_status: data.employment_status ?? '',
+          veteran: data.veteran === null ? '' : String(data.veteran),
+          disability: data.disability === null ? '' : String(data.disability),
+          household_type: data.household_type ?? '',
+        });
+      }
+    } catch (err) {
+      logError({ action: 'load_user_demographics', userId: user.id, errorMessage: extractMsg(err) });
+    } finally {
+      setDemographicsLoading(false);
+    }
+  }
+
+  async function handleSaveDemographics() {
+    if (!user) return;
+    setDemographicsSaving(true);
+    setDemographicsError(null);
+    setDemographicsSaved(false);
+    try {
+      const { error } = await supabase.rpc('submit_demographics', demographicsAnswersToRpcArgs(demographicsAnswers));
+      if (error) throw error;
+      setDemographicsSaved(true);
+      setTimeout(() => setDemographicsSaved(false), 2500);
+    } catch (err) {
+      logError({ action: 'submit_demographics', userId: user.id, errorMessage: extractMsg(err) });
+      setDemographicsError("We couldn't save that right now. Please try again.");
+    } finally {
+      setDemographicsSaving(false);
+    }
+  }
 
   async function loadMyBlocks() {
     if (!user) return;
@@ -705,6 +764,72 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
             <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600, marginTop: 8 }}>{joinError}</p>
           )}
         </div>
+      </div>
+
+      {/* ── SECTION 3C: DEMOGRAPHICS ── */}
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid #E2E8E4',
+        overflow: 'visible',
+      }}>
+        <div style={{ padding: '12px 14px 6px', borderBottom: '1px solid #F4F6F0' }}>
+          <span style={{
+            fontSize: 12,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            color: '#94a3b8',
+          }}>
+            Demographics
+          </span>
+        </div>
+
+        {demographicsLoading ? (
+          <div style={{ padding: 20, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span key={delay} className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '12px 14px' }}>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: '0 0 12px' }}>
+              These are always optional and never visible to anyone, including UVote admins — they only ever inform aggregate, anonymous community breakdowns.
+            </p>
+
+            <DemographicsFields answers={demographicsAnswers} onChange={setDemographicsAnswers} />
+
+            {demographicsError && (
+              <p style={{ fontSize: 13, color: '#F0455A', fontWeight: 600, marginTop: 12 }}>{demographicsError}</p>
+            )}
+            {demographicsSaved && (
+              <p style={{ fontSize: 13, color: '#0e6b4a', fontWeight: 600, marginTop: 12 }}>Saved.</p>
+            )}
+
+            <button
+              onClick={handleSaveDemographics}
+              disabled={demographicsSaving}
+              style={{
+                width: '100%',
+                marginTop: 14,
+                background: '#1B4332',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                padding: 12,
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: demographicsSaving ? 'default' : 'pointer',
+                opacity: demographicsSaving ? 0.7 : 1,
+              }}
+            >
+              {demographicsSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── SECTION 4: VOTING HISTORY ── */}
