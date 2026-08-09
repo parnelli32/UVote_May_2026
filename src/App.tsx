@@ -10,6 +10,7 @@ import { VotingBlockPage } from './pages/VotingBlockPage';
 import { AdminPage } from './pages/AdminPage';
 import { AboutPage } from './pages/AboutPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
+import { ElectionCenterPage } from './pages/ElectionCenterPage';
 import { RepBillHistoryPage } from './pages/RepBillHistoryPage';
 import { UserVotingHistoryPage } from './pages/UserVotingHistoryPage';
 import { OnboardingGuide } from './components/OnboardingGuide';
@@ -28,6 +29,7 @@ type Route =
   | { name: 'admin' }
   | { name: 'about' }
   | { name: 'howItWorks' }
+  | { name: 'electionCenter' }
   | { name: 'repHistory'; repId: string; preloadedBills?: unknown[]; preloadedRepName?: string }
   | { name: 'userVotingHistory'; preloadedRows?: unknown[] };
 
@@ -43,6 +45,7 @@ function parseInitialRoute(): Route {
   if (path === '/admin') return { name: 'admin' };
   if (path === '/about') return { name: 'about' };
   if (path === '/how-it-works') return { name: 'howItWorks' };
+  if (path === '/election-center') return { name: 'electionCenter' };
   return { name: 'home' };
 }
 
@@ -68,6 +71,8 @@ function AppInner() {
       window.history.pushState({}, '', '/about');
     } else if (route.name === 'howItWorks') {
       window.history.pushState({}, '', '/how-it-works');
+    } else if (route.name === 'electionCenter') {
+      window.history.pushState({}, '', '/election-center');
     } else if (route.name === 'repHistory') {
       window.history.pushState({}, '', `/rep/${route.repId}/history`);
     } else if (route.name === 'userVotingHistory') {
@@ -114,6 +119,10 @@ function AppInner() {
 
   function navigateToHowItWorks() {
     setRoute({ name: 'howItWorks' });
+  }
+
+  function navigateToElectionCenter() {
+    setRoute({ name: 'electionCenter' });
   }
 
   function navigateToRepHistory(repId: string, bills?: unknown[], repName?: string) {
@@ -191,6 +200,7 @@ function AppInner() {
           onNavigateToVotingBlock={navigateToVotingBlock}
           onNavigateToHowItWorks={navigateToHowItWorks}
           onNavigateToAbout={navigateToAbout}
+          onNavigateToElectionCenter={navigateToElectionCenter}
           onSignUp={() => setAuthView('signup')}
         />
       );
@@ -203,6 +213,7 @@ function AppInner() {
         onNavigateToVotingBlock={navigateToVotingBlock}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         navProps={navProps}
       />
     );
@@ -217,6 +228,7 @@ function AppInner() {
         onNavigateToRep={navigateToRep}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         onNavigateToRepHistory={(bills, repName) => navigateToRepHistory(route.repId, bills, repName)}
         navProps={user ? navProps : undefined}
       />
@@ -234,6 +246,7 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         navProps={user ? navProps : undefined}
       />
     );
@@ -247,6 +260,7 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         preloadedBills={route.preloadedBills}
         preloadedRepName={route.preloadedRepName}
         navProps={user ? navProps : undefined}
@@ -260,6 +274,7 @@ function AppInner() {
         onBack={user ? navigateHome : () => setAuthView('signin')}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         navProps={user ? navProps : undefined}
       />
     );
@@ -270,6 +285,19 @@ function AppInner() {
       <HowItWorksPage
         onBack={user ? navigateHome : () => setAuthView('signin')}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
+        navProps={user ? navProps : undefined}
+      />
+    );
+  }
+
+  if (route.name === 'electionCenter') {
+    return (
+      <ElectionCenterPage
+        onBack={user ? navigateHome : () => setAuthView('signin')}
+        onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         navProps={user ? navProps : undefined}
       />
     );
@@ -277,9 +305,20 @@ function AppInner() {
 
   if (!user) {
     if (authView === 'signup') {
-      return <SignUpPage onSwitchToSignIn={() => setAuthView('signin')} />;
+      return (
+        <SignUpPage
+          onSwitchToSignIn={() => setAuthView('signin')}
+          onNavigateToElectionCenter={navigateToElectionCenter}
+        />
+      );
     }
-    return <SignInPage onSwitchToSignUp={() => setAuthView('signup')} onNavigateToAbout={navigateToAbout} />;
+    return (
+      <SignInPage
+        onSwitchToSignUp={() => setAuthView('signup')}
+        onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
+      />
+    );
   }
 
   if (route.name === 'admin') {
@@ -298,6 +337,7 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToAbout={navigateToAbout}
         onNavigateToHowItWorks={navigateToHowItWorks}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         onNavigateToUserVotingHistory={navigateToUserVotingHistory}
         onNavigateToVotingBlock={navigateToVotingBlock}
         navProps={navProps}
@@ -315,6 +355,7 @@ function AppInner() {
         onNavigateToBill={navigateToBill}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
+        onNavigateToElectionCenter={navigateToElectionCenter}
         preloadedRows={route.preloadedRows}
         navProps={navProps}
       />
@@ -337,6 +378,7 @@ function AppInner() {
       onNavigateToAdmin={navigateToAdmin}
       onNavigateToAbout={navigateToAbout}
       onNavigateToHowItWorks={navigateToHowItWorks}
+      onNavigateToElectionCenter={navigateToElectionCenter}
     />
   );
 }

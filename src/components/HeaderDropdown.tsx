@@ -4,12 +4,14 @@ type HeaderDropdownProps = {
   districtName: string | null;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
 };
 
 export function HeaderDropdown({
   districtName,
   onNavigateToHowItWorks,
   onNavigateToAbout,
+  onNavigateToElectionCenter,
 }: HeaderDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -23,6 +25,11 @@ export function HeaderDropdown({
   function handleAbout() {
     setOpen(false);
     onNavigateToAbout();
+  }
+
+  function handleElectionCenter() {
+    setOpen(false);
+    onNavigateToElectionCenter();
   }
 
   return (
@@ -120,6 +127,58 @@ export function HeaderDropdown({
                 </div>
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
                   Philadelphia City Council · 6 stages
+                </div>
+              </div>
+              <i className="fa-solid fa-chevron-right" style={{ fontSize: 12, color: '#94a3b8' }} />
+            </button>
+
+            <div style={{ height: 1, background: '#F4F6F0', margin: '2px 14px' }} />
+
+            <p style={{
+              padding: '6px 14px 2px',
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.8px',
+              color: '#94a3b8',
+              margin: 0,
+            }}>
+              Elections
+            </p>
+
+            <button
+              onClick={handleElectionCenter}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '9px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 11,
+                textAlign: 'left',
+                minHeight: 'unset',
+              }}
+            >
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: '#E8F0EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <i className="fa-solid fa-check-to-slot" style={{ fontSize: 14, color: '#1B4332' }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>
+                  Election Center
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                  Registration, polling places, key dates
                 </div>
               </div>
               <i className="fa-solid fa-chevron-right" style={{ fontSize: 12, color: '#94a3b8' }} />

@@ -10,6 +10,7 @@ import {
 type HowItWorksPageProps = {
   onBack: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   bodyId?: string;
   navProps?: {
     activeTab: NavTab;
@@ -21,7 +22,7 @@ type HowItWorksPageProps = {
 
 const SUMMARY_STAGE_INDICES = [1, 3, 4]; // stages 2, 4, 5 (0-based)
 
-export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: HowItWorksPageProps) {
+export function HowItWorksPage({ onBack, onNavigateToAbout, onNavigateToElectionCenter, bodyId, navProps }: HowItWorksPageProps) {
   const guide =
     LEGISLATIVE_GUIDES[bodyId ?? PHILLY_COUNCIL_BODY_ID] ??
     LEGISLATIVE_GUIDES[PHILLY_COUNCIL_BODY_ID];
@@ -41,7 +42,7 @@ export function HowItWorksPage({ onBack, onNavigateToAbout, bodyId, navProps }: 
       maxWidth: 600,
       margin: '0 auto',
     }}>
-      <AppHeader onNavigateToHowItWorks={onBack} onNavigateToAbout={onNavigateToAbout} />
+      <AppHeader onNavigateToHowItWorks={onBack} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
       {/* SCROLLABLE MAIN */}
       <div style={{

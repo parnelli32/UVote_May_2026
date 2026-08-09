@@ -32,12 +32,13 @@ type UserProfilePageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToAbout: () => void;
   onNavigateToHowItWorks: () => void;
+  onNavigateToElectionCenter: () => void;
   onNavigateToUserVotingHistory: (rows: VoteHistoryRow[]) => void;
   onNavigateToVotingBlock: (blockId: string) => void;
   navProps: NavProps;
 };
 
-export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToUserVotingHistory, onNavigateToVotingBlock, navProps }: UserProfilePageProps) {
+export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToElectionCenter, onNavigateToUserVotingHistory, onNavigateToVotingBlock, navProps }: UserProfilePageProps) {
   const { user, profile, districtName } = useAuth();
 
   const [myBlocks, setMyBlocks] = useState<VotingBlockPublic[]>([]);
@@ -319,7 +320,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
       <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
-        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
         <div
           className="scrollbar-hide"

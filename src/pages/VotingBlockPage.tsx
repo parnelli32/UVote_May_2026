@@ -20,6 +20,7 @@ type VotingBlockPageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   navProps?: NavProps;
 };
 
@@ -31,7 +32,7 @@ function extractMsg(err: unknown): string {
   return (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
 }
 
-export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateToHowItWorks, onNavigateToAbout, navProps }: VotingBlockPageProps) {
+export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, navProps }: VotingBlockPageProps) {
   const { user } = useAuth();
 
   const [block, setBlock] = useState<VotingBlockPublic | null>(null);
@@ -216,7 +217,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
   const shell = (content: React.ReactNode) => (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
       <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
-        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
         {content}
         {navProps && <BottomNav {...navProps} />}
       </div>

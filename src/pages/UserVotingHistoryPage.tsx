@@ -11,6 +11,7 @@ type UserVotingHistoryPageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   preloadedRows?: unknown[];
   navProps: {
     activeTab: NavTab;
@@ -113,6 +114,7 @@ export function UserVotingHistoryPage({
   onNavigateToBill,
   onNavigateToHowItWorks,
   onNavigateToAbout,
+  onNavigateToElectionCenter,
   preloadedRows,
   navProps,
 }: UserVotingHistoryPageProps) {
@@ -315,7 +317,7 @@ export function UserVotingHistoryPage({
       maxWidth: 600,
       margin: '0 auto',
     }}>
-      <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+      <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
       {/* Summary band */}
       <div style={{
