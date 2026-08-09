@@ -345,7 +345,7 @@ export type VotingBlockBillPosition = {
   support_count: number;
   oppose_count: number;
   total_votes: number;
-  position: 'support' | 'oppose' | 'tied';
+  vote_position: 'support' | 'oppose' | 'tied';
 };
 
 // Return shape of the get_voting_block_geo_breakdown RPC.
@@ -365,7 +365,7 @@ export type BillVotingBlockPosition = {
   support_count: number;
   oppose_count: number;
   total_votes: number;
-  position: 'support' | 'oppose' | 'tied';
+  vote_position: 'support' | 'oppose' | 'tied';
 };
 
 export type BillPriority = {

@@ -592,17 +592,17 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVo
                     }}
                   >
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', flexShrink: 0 }}>{bp.name}</span>
-                    {bp.position === 'tied' ? (
+                    {bp.vote_position === 'tied' ? (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6, flexShrink: 0 }}>
                         Evenly split
                       </span>
                     ) : (
                       <span style={{
                         fontSize: 12, fontWeight: 700, padding: '3px 8px', borderRadius: 6, flexShrink: 0,
-                        background: bp.position === 'support' ? '#E6F5EE' : '#FEF0EF',
-                        color: bp.position === 'support' ? '#0e6b4a' : '#c0392b',
+                        background: bp.vote_position === 'support' ? '#E6F5EE' : '#FEF0EF',
+                        color: bp.vote_position === 'support' ? '#0e6b4a' : '#c0392b',
                       }}>
-                        {bp.position === 'support' ? supportPct : opposePct}% {bp.position === 'support' ? 'Support' : 'Oppose'} · {bp.total_votes} votes
+                        {bp.vote_position === 'support' ? supportPct : opposePct}% {bp.vote_position === 'support' ? 'Support' : 'Oppose'} · {bp.total_votes} votes
                       </span>
                     )}
                   </button>
