@@ -23,6 +23,7 @@ type RepProfilePageProps = {
   onNavigateToRep: (repId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   onNavigateToRepHistory: (bills: BillWithRepVote[], repName: string) => void;
   navProps?: NavProps;
 };
@@ -50,7 +51,7 @@ type MyAlignmentScore = {
 
 type AtLargeRep = Pick<Representative, 'representative_id' | 'first_name' | 'last_name' | 'title'>;
 
-export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToRepHistory, navProps }: RepProfilePageProps) {
+export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onNavigateToRepHistory, navProps }: RepProfilePageProps) {
   const { user } = useAuth();
 
   const [rep, setRep] = useState<Representative | null>(null);
@@ -295,7 +296,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
           <div className="flex-1 flex items-center justify-center">
             <div className="flex gap-1.5">
               {[0, 150, 300].map((delay) => (
@@ -317,7 +318,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
         <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
             <p style={{ fontSize: 13, color: '#64748b' }}>{error ?? "We couldn't load this representative's profile."}</p>
@@ -331,7 +332,7 @@ export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100dvh', background: '#F4F6F0', overflow: 'hidden' }}>
       <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
         <main
           className="scrollbar-hide"

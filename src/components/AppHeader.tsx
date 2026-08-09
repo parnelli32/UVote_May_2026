@@ -4,9 +4,10 @@ import { HeaderDropdown } from './HeaderDropdown';
 type AppHeaderProps = {
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
 };
 
-export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout }: AppHeaderProps) {
+export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter }: AppHeaderProps) {
   const { districtName } = useAuth();
 
   return (
@@ -25,6 +26,7 @@ export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout }: AppHead
         districtName={districtName}
         onNavigateToHowItWorks={onNavigateToHowItWorks}
         onNavigateToAbout={onNavigateToAbout}
+        onNavigateToElectionCenter={onNavigateToElectionCenter}
       />
     </header>
   );

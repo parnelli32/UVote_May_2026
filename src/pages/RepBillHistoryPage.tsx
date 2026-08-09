@@ -12,6 +12,7 @@ type RepBillHistoryPageProps = {
   onNavigateToBill: (billId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   preloadedBills?: unknown[];
   preloadedRepName?: string;
   navProps?: {
@@ -46,6 +47,7 @@ export function RepBillHistoryPage({
   onNavigateToBill,
   onNavigateToHowItWorks,
   onNavigateToAbout,
+  onNavigateToElectionCenter,
   preloadedBills,
   preloadedRepName,
   navProps,
@@ -198,7 +200,7 @@ export function RepBillHistoryPage({
       maxWidth: 600,
       margin: '0 auto',
     }}>
-      <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+      <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
       {/* Summary band */}
       <div style={{

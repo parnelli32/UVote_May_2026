@@ -34,11 +34,12 @@ type BillDetailPageProps = {
   onNavigateToVotingBlock: (blockId: string) => void;
   onNavigateToHowItWorks: () => void;
   onNavigateToAbout: () => void;
+  onNavigateToElectionCenter: () => void;
   onSignUp?: () => void;
   navProps?: NavProps;
 };
 
-export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onSignUp, navProps }: BillDetailPageProps) {
+export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onSignUp, navProps }: BillDetailPageProps) {
   const { user, profile } = useAuth();
 
   const [bill, setBill] = useState<Bill | null>(null);
@@ -282,7 +283,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVo
     return (
       <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
         <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
-          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
           <div className="flex-1 flex items-center justify-center">
             <div className="flex gap-1.5">
               {[0, 150, 300].map((delay) => (
@@ -304,7 +305,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVo
     return (
       <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
         <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
-          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
             <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 28, color: '#F0455A', marginBottom: 10 }} />
             <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Something went wrong</p>
@@ -325,7 +326,7 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVo
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
       <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
-        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} />
+        <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
 
         <main className="flex-1 overflow-y-auto scrollbar-hide" style={{ padding: 10, paddingBottom: navProps ? 10 : 24 }}>
           {/* Copy toast */}
