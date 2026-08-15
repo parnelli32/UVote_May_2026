@@ -14,13 +14,12 @@
 // boundary geometry) and a client RPC call avoids an extra network hop through
 // an Edge Function for the common, latency-sensitive path.
 //
-// NOT LIVE-TESTED against PostGIS/ST_Contains itself — the actual boundary
-// load and point-in-polygon matching have not been run against a live
-// database. Captain approved verifying this against the real production
-// Supabase project (same rigor as the census-blocks migration), but this
-// environment has no Supabase access token / service-role key / DB password
-// to actually deploy or invoke it with — that credential gap is the
-// remaining blocker, not missing approval.
+// LIVE-VERIFIED against PostGIS/ST_Contains — the boundary load and
+// point-in-polygon matching were confirmed live in the production Supabase
+// project during earlier dev testing (same rigor as the census-blocks
+// migration). mode "backfill" was run once (captain-approved) against
+// production to bulk-resolve PA House/Senate districts for the 26 existing
+// users who signed up before this feature shipped.
 //
 // The GeoJSON parsing this function does *was* verified live: downloaded
 // both real PASDA files directly (2026-08-09) and confirmed LEG_DISTRI is
