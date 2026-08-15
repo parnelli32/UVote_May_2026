@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
-import { getTopicTag } from '../lib/billUtils';
+import { getTopicTag, isBillVotable } from '../lib/billUtils';
 import { getCache, setCache, TTL } from '../lib/cache';
 import type { UserVote } from '../lib/types';
 import { BillCard } from '../components/BillCard';
@@ -145,8 +145,12 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
   const filteredBills = useMemo(() => {
     let result = [...bills];
 
-    // Status filter
-    if (statusFilter === 'active') result = result.filter(b => b.status === 'active');
+    // Status filter — "active" additionally means "actually votable": for
+    // LegiScan-sourced bodies (PA House/Senate), a bill still sitting in
+    // committee shouldn't show up as an active bill to vote on. City
+    // Council is unaffected (see isBillVotable) — every bill here already
+    // shares the signed-in user's currently selected body.
+    if (statusFilter === 'active') result = result.filter(b => isBillVotable(b, currentBody?.requires_committee_report ?? false));
     else if (statusFilter === 'passed') result = result.filter(b => b.status === 'passed');
 
     // Vote filter
@@ -178,7 +182,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
     });
 
     return result;
-  }, [bills, statusFilter, voteFilter, topicFilter, sortBy, userVotes, districtTallies]);
+  }, [bills, statusFilter, voteFilter, topicFilter, sortBy, userVotes, districtTallies, currentBody]);
 
   const activeFilterCount = [
     statusFilter !== 'active',

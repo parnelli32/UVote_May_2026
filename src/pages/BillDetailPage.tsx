@@ -10,6 +10,7 @@ import {
   getTopicTag,
   parseSummaryIntoSections,
   formatIntroducedDate,
+  isBillVotable,
 } from '../lib/billUtils';
 import { BillPrioritySection } from '../components/BillPrioritySection';
 import type { Bill, UserVote, RepVote, Representative, BillVotingBlockPosition } from '../lib/types';
@@ -233,6 +234,15 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
       setVoteError("You've already voted on this bill.");
       return;
     }
+    const requiresCommitteeReport = legislativeBodies.find((b) => b.legislative_body_id === bill?.legislative_body_id)?.requires_committee_report ?? false;
+    if (!bill || !isBillVotable(bill, requiresCommitteeReport)) {
+      // Defense in depth — the vote buttons are already hidden in this case
+      // (see the render below), and the server-side RLS check on
+      // user_votes is the real enforcement, but this avoids a wasted round
+      // trip to an insert that's guaranteed to be rejected.
+      setVoteError('This bill is still in committee and isn\'t open for voting yet.');
+      return;
+    }
     setVoting(true);
     setVoteError(null);
     try {
@@ -322,6 +332,8 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
   const supportPct = tally.total_votes > 0 ? Math.round((tally.support_count / tally.total_votes) * 100) : 0;
   const opposePct = tally.total_votes > 0 ? Math.round((tally.oppose_count / tally.total_votes) * 100) : 0;
   const isSupport = userVote?.vote === 'support';
+  const requiresCommitteeReport = legislativeBodies.find((b) => b.legislative_body_id === bill.legislative_body_id)?.requires_committee_report ?? false;
+  const votable = isBillVotable(bill, requiresCommitteeReport);
 
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
@@ -531,6 +543,16 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
                     {!isSupport ? '✓ Opposed' : 'Oppose'}
                   </button>
                 </>
+              ) : !votable ? (
+                <div style={{
+                  flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                  background: '#F4F6F0', borderRadius: 8, padding: 12,
+                }}>
+                  <i className="fa-solid fa-hourglass-half" style={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4 }}>
+                    This bill is still in committee. It'll open for voting once it's reported out.
+                  </span>
+                </div>
               ) : (
                 <>
                   <button

@@ -135,6 +135,19 @@
 // fails with "no unique or exclusion constraint matching the ON CONFLICT
 // specification" against that index, even for a brand-new district.
 
+// COMMITTEE VOTE GATE (2026-08-15): UVote's `bills.status` is too coarse to
+// tell "still in committee" apart from "reported out and on the floor
+// calendar" — both show `active`. Per LegiScan API User Manual v1.91's
+// Status/Progress table, `getBill().progress` (not the coarse top-level
+// `status` field) carries the real signal: event 9 = Refer (committee
+// referral), event 10 = Report Pass (reported out of committee favorably),
+// event 11 = Report DNP (died in committee, "Did Not Pass"). Voting is now
+// gated (see the migration adding `bills.reported_from_committee_at` and
+// `legislative_bodies.requires_committee_report`) to bills that have a
+// Report Pass event in their progress history — computeCommitteeStatus
+// below derives that from the raw progress array, used both by the normal
+// per-bill sync path and by the one-time backfillCommitteeStatus pass for
+// bills synced before this field existed.
 import { createAdminClient } from '../_shared/supabaseAdmin.ts';
 import {
   getSessionList,
@@ -423,6 +436,35 @@ function selectFloorVote(votes: LegiscanBillVoteSummary[], bodyId: string): Legi
   return floorVotes.reduce((latest, v) => (v.date > latest.date ? v : latest));
 }
 
+// Derives the committee vote gate from a bill's raw `progress` array (see
+// header comment). Looks for event 10 (Report Pass) SPECIFICALLY, not just
+// "is the latest event a 10" — `progress` is a cumulative history, so a bill
+// that has since moved past committee (floor vote, passage, etc.) still
+// carries its earlier Report Pass entry; only using "latest entry is 10"
+// would wrongly re-lock a bill that already cleared committee once it
+// progresses further. "Died in committee" is narrower: true only when the
+// most recent event overall is 11 (Report DNP) with nothing later — a bill
+// re-referred and reported a second time (11 followed by a later 10) is not
+// treated as dead, since the later Report Pass supersedes it.
+function computeCommitteeStatus(
+  progress: { date: string; event: number }[] | undefined
+): { reportedFromCommitteeAt: string | null; diedInCommittee: boolean } {
+  if (!progress || progress.length === 0) {
+    return { reportedFromCommitteeAt: null, diedInCommittee: false };
+  }
+  const reportPassEntries = progress.filter((p) => p.event === 10);
+  const latestReportPass =
+    reportPassEntries.length > 0
+      ? reportPassEntries.reduce((latest, p) => (p.date > latest.date ? p : latest))
+      : null;
+  const latestOverall = progress.reduce((latest, p) => (p.date > latest.date ? p : latest));
+
+  return {
+    reportedFromCommitteeAt: latestReportPass?.date ?? null,
+    diedInCommittee: latestOverall.event === 11,
+  };
+}
+
 async function upsertRollCallVotes(
   admin: ReturnType<typeof createAdminClient>,
   billId: string,
@@ -544,7 +586,13 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
 
     try {
       const fullBill = await getBill(entry.bill_id);
-      const status = mapLegiscanStatus(fullBill.status);
+      const { reportedFromCommitteeAt, diedInCommittee } = computeCommitteeStatus(fullBill.progress);
+      // Report DNP is authoritative regardless of LegiScan's coarse top-level
+      // status — that's the whole reason this signal is worth reading from
+      // `progress` at all (see header comment): a bill that died in
+      // committee has no guarantee LegiScan's own `status` field ever moves
+      // off "Introduced" to reflect that.
+      const status = diedInCommittee ? 'failed' : mapLegiscanStatus(fullBill.status);
 
       let billId = existingRef?.bill_id;
       if (billId) {
@@ -556,6 +604,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             status,
             legislative_body_id: bodyId,
             bill_number: entry.number,
+            reported_from_committee_at: reportedFromCommitteeAt,
           })
           .eq('bill_id', billId);
       } else {
@@ -568,6 +617,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             legislative_body_id: bodyId,
             bill_number: entry.number,
             introduced_date: entry.status_date,
+            reported_from_committee_at: reportedFromCommitteeAt,
           })
           .select('bill_id')
           .single();
@@ -625,6 +675,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
                 summary: fullBill.description,
                 status,
                 legislative_body_id: bodyId,
+                reported_from_committee_at: reportedFromCommitteeAt,
               })
               .eq('bill_id', billId);
           } else {
@@ -683,6 +734,93 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
   return { changed, failures, remaining, totalChanged: changedEntries.length, skippedResolutions };
 }
 
+// One-time pass: every bill synced before `reported_from_committee_at`
+// existed needs its committee status back-computed from LegiScan, not just
+// bills that happen to change_hash-change going forward. Deliberately
+// separate from `phase: "bills"` (which only re-fetches CHANGED bills) —
+// this instead re-fetches every already-synced bill exactly once, tracked
+// via `bill_external_refs.committee_backfilled_at` rather than
+// `reported_from_committee_at IS NULL`, because a bill that's genuinely
+// still sitting in committee (no Report Pass event yet) would have
+// `reported_from_committee_at` stay null forever — using that as the
+// resume cursor would mean every invocation re-selects the same
+// still-pending bills and this "one-time" pass would never converge to 0
+// remaining. `committee_backfilled_at` is set on every processed bill
+// regardless of outcome, so it always converges.
+//
+// Same conservative batching posture as DEFAULT_BILL_BATCH_LIMIT /
+// MAX_BILL_BATCH_LIMIT above (start low, raise only with log evidence of
+// headroom) — this does one getBill call per candidate, lighter than the
+// full bills-sync path (no sponsor/roll-call upserts), but not assumed
+// cheaper without a real invocation's timing log to back that up.
+export const DEFAULT_BACKFILL_BATCH_LIMIT = 5;
+export const MAX_BACKFILL_BATCH_LIMIT = 25;
+
+async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClient>, limit: number) {
+  const t0 = Date.now();
+
+  const { count: totalRemaining, error: countErr } = await admin
+    .from('bill_external_refs')
+    .select('bill_id', { count: 'exact', head: true })
+    .eq('source', 'legiscan')
+    .is('committee_backfilled_at', null);
+  if (countErr) throw countErr;
+
+  const { data: candidates, error: candErr } = await admin
+    .from('bill_external_refs')
+    .select('bill_id, external_bill_id')
+    .eq('source', 'legiscan')
+    .is('committee_backfilled_at', null)
+    .order('external_bill_id', { ascending: true })
+    .limit(limit);
+  if (candErr) throw candErr;
+  const tCandidates = Date.now();
+
+  let updated = 0;
+  let failures = 0;
+
+  for (const ref of candidates ?? []) {
+    try {
+      const fullBill = await getBill(Number(ref.external_bill_id));
+      const { reportedFromCommitteeAt, diedInCommittee } = computeCommitteeStatus(fullBill.progress);
+
+      const billUpdate: Record<string, unknown> = { reported_from_committee_at: reportedFromCommitteeAt };
+      if (diedInCommittee) billUpdate.status = 'failed';
+
+      const { error: billUpdateErr } = await admin.from('bills').update(billUpdate).eq('bill_id', ref.bill_id);
+      if (billUpdateErr) throw billUpdateErr;
+
+      const { error: refUpdateErr } = await admin
+        .from('bill_external_refs')
+        .update({ committee_backfilled_at: new Date().toISOString() })
+        .eq('bill_id', ref.bill_id);
+      if (refUpdateErr) throw refUpdateErr;
+
+      updated++;
+    } catch (err) {
+      console.error(`Backfill failed for bill_id ${ref.bill_id} (legiscan bill_id ${ref.external_bill_id}):`, err);
+      failures++;
+      // Deliberately do not set committee_backfilled_at on failure — retried next invocation.
+    }
+  }
+  const tDone = Date.now();
+
+  // Failures stay in the candidate set (committee_backfilled_at untouched),
+  // so only successes shrink what's remaining.
+  const remaining = Math.max((totalRemaining ?? 0) - updated, 0);
+
+  console.log(
+    `backfillCommitteeStatus timing: count+candidates=${tCandidates - t0}ms, ` +
+    `batch-processing(${candidates?.length ?? 0})=${tDone - tCandidates}ms, total=${tDone - t0}ms`
+  );
+  console.log(
+    `backfillCommitteeStatus: ${updated}/${candidates?.length ?? 0} bills backfilled, ${failures} failures, ` +
+    `${remaining} remaining (of ${totalRemaining ?? 0} total)`
+  );
+
+  return { updated, failures, remaining, totalRemaining: totalRemaining ?? 0 };
+}
+
 Deno.serve(async (req) => {
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (!cronSecret || req.headers.get('x-cron-secret') !== cronSecret) {
@@ -693,7 +831,23 @@ Deno.serve(async (req) => {
   try {
     const admin = createAdminClient();
     const body = await req.json().catch(() => ({}));
-    const phase: 'people' | 'bills' | 'all' = body.phase === 'people' || body.phase === 'bills' ? body.phase : 'all';
+    const phase: 'people' | 'bills' | 'backfill' | 'all' =
+      body.phase === 'people' || body.phase === 'bills' || body.phase === 'backfill' ? body.phase : 'all';
+
+    // `backfill` is separate, one-time work (see backfillCommitteeStatus's
+    // header comment) — it doesn't touch getSessionList/getMasterList at
+    // all, so it's handled entirely on its own rather than falling through
+    // the session-lookup path the other phases share.
+    if (phase === 'backfill') {
+      const requestedLimit = typeof body.limit === 'number' ? Math.floor(body.limit) : DEFAULT_BACKFILL_BATCH_LIMIT;
+      const limit = Math.min(Math.max(requestedLimit, 1), MAX_BACKFILL_BATCH_LIMIT);
+      const backfillResult = await backfillCommitteeStatus(admin, limit);
+      console.log(`legiscan-sync total: phase=backfill, wall=${Date.now() - tStart}ms`);
+      return new Response(JSON.stringify({ ok: true, phase, limit, ...backfillResult }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const requestedLimit = typeof body.limit === 'number' ? Math.floor(body.limit) : DEFAULT_BILL_BATCH_LIMIT;
     const limit = Math.min(Math.max(requestedLimit, 1), MAX_BILL_BATCH_LIMIT);
 
