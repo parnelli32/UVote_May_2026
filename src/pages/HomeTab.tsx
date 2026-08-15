@@ -1,188 +1,200 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
-import { getTopicTag, isBillVotable } from '../lib/billUtils';
 import { getCache, setCache, TTL } from '../lib/cache';
-import type { UserVote } from '../lib/types';
 import { BillCard } from '../components/BillCard';
-import type { BillWithTally } from '../components/BillCard';
+import type { Database } from '../lib/types';
+
+const PAGE_SIZE = 20;
+
+type FeedBill = Database['public']['Views']['my_bill_feed']['Row'];
+
+type StatusFilter = 'active' | 'passed' | 'all';
+type VoteFilter = 'all' | 'not-voted' | 'voted' | 'matched-majority';
+type SortBy = 'newest' | 'oldest' | 'most-votes' | 'topic' | 'highest-support';
 
 export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: string) => void; onNavigateToAbout: () => void }) {
   const { user, currentBodyId, currentBody } = useAuth();
-  const [bills, setBills] = useState<BillWithTally[]>([]);
-  const [userVotes, setUserVotes] = useState<Map<string, UserVote>>(new Map());
-  const [districtTallies, setDistrictTallies] = useState<{ bill_id: string; support_count: number; oppose_count: number }[]>([]);
+  const [bills, setBills] = useState<FeedBill[]>([]);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [statusOnlyCount, setStatusOnlyCount] = useState<number | null>(null);
+  const [unvotedActiveCount, setUnvotedActiveCount] = useState(0);
+  const [hasEverVoted, setHasEverVoted] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filter & sort state
-  const [statusFilter, setStatusFilter] = useState<'active' | 'passed' | 'all'>('active');
-  const [voteFilter, setVoteFilter] = useState<'all' | 'not-voted' | 'voted' | 'matched-majority'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
+  const [voteFilter, setVoteFilter] = useState<VoteFilter>('all');
   const [topicFilter, setTopicFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'most-votes' | 'topic' | 'highest-support'>('newest');
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const requiresCommitteeReport = currentBody?.requires_committee_report ?? false;
+
+  const buildQuery = useCallback((offset: number, withCount: boolean = true) => {
+    let q = withCount
+      ? supabase.from('my_bill_feed').select('*', { count: 'exact' })
+      : supabase.from('my_bill_feed').select('*');
+
+    if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
+
+    if (statusFilter === 'active') {
+      q = q.eq('status', 'active');
+      if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
+    } else if (statusFilter === 'passed') {
+      q = q.eq('status', 'passed');
+    }
+
+    if (voteFilter === 'not-voted') q = q.is('my_vote', null);
+    else if (voteFilter === 'voted') q = q.not('my_vote', 'is', null);
+    else if (voteFilter === 'matched-majority') q = q.eq('matched_district_majority', true);
+
+    if (topicFilter !== 'all') q = q.eq('topic', topicFilter);
+
+    if (sortBy === 'newest') q = q.order('effective_sort_date', { ascending: false });
+    else if (sortBy === 'oldest') q = q.order('effective_sort_date', { ascending: true });
+    else if (sortBy === 'most-votes') q = q.order('total_votes', { ascending: false });
+    else if (sortBy === 'highest-support') q = q.order('support_pct', { ascending: false });
+    else if (sortBy === 'topic') q = q.order('topic', { ascending: true });
+    // Stable tie-breaker so .range() pagination can't skip or repeat rows across pages.
+    q = q.order('bill_id', { ascending: true });
+
+    return q.range(offset, offset + PAGE_SIZE - 1);
+  }, [currentBodyId, statusFilter, voteFilter, topicFilter, sortBy, requiresCommitteeReport]);
+
+  // Initial load / reset to page 1 whenever the user, body, or any filter changes.
+  const loadGenerationRef = useRef(0);
   useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    loadGenerationRef.current += 1;
+
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const cacheKey = `bills_${user?.id ?? 'anon'}_${statusFilter}_${currentBodyId}`;
-        type BillsCache = {
-          bills: BillWithTally[];
-          userVotes: [string, UserVote][];
-          districtTallies: { bill_id: string; support_count: number; oppose_count: number }[];
-        };
+        const cacheKey = `bills_${user!.id}_${currentBodyId}_${statusFilter}_${voteFilter}_${topicFilter}_${sortBy}`;
+        type BillsCache = { bills: FeedBill[]; totalCount: number | null; hasMore: boolean };
         const cached = getCache<BillsCache>(cacheKey, TTL.SHORT);
         if (cached) {
           setBills(cached.bills);
-          setUserVotes(new Map(cached.userVotes));
-          setDistrictTallies(cached.districtTallies);
+          setTotalCount(cached.totalCount);
+          setHasMore(cached.hasMore);
           setLoading(false);
           return;
         }
 
-        const legislativeBodyId = currentBodyId;
+        const { data, error: err, count } = await buildQuery(0);
+        if (err) throw err;
+        if (cancelled) return;
 
-        let billQuery = supabase
-          .from('bills')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (legislativeBodyId) {
-          billQuery = billQuery.eq('legislative_body_id', legislativeBodyId);
-        }
-
-        if (statusFilter === 'active') {
-          billQuery = billQuery.eq('status', 'active');
-        } else if (statusFilter === 'passed') {
-          billQuery = billQuery.eq('status', 'passed');
-        }
-        // statusFilter === 'all': no filter, fetch all statuses
-
-        const { data: billsData, error: billsErr } = await billQuery;
-        if (billsErr) throw billsErr;
-
-        if (!billsData || billsData.length === 0) {
-          setBills([]);
-          setLoading(false);
-          return;
-        }
-
-        const billIds = billsData.map((b) => b.bill_id);
-
-        // Fetch tallies and user votes in parallel
-        const [talliesRes, uvRes] = await Promise.all([
-          supabase
-            .from('bill_vote_tallies')
-            .select('bill_id, support_count, oppose_count, total_votes')
-            .in('bill_id', billIds),
-          user
-            ? supabase.from('user_votes').select('*').eq('user_id', user.id).in('bill_id', billIds)
-            : Promise.resolve({ data: null }),
-        ]);
-
-        const tallies = talliesRes.data;
-        const uvData = uvRes.data;
-
-        const tallyMap = new Map<string, { support_count: number; oppose_count: number; total_votes: number }>(
-          (tallies ?? []).map((t) => [
-            t.bill_id,
-            {
-              support_count: Number(t.support_count ?? 0),
-              oppose_count: Number(t.oppose_count ?? 0),
-              total_votes: Number(t.total_votes ?? 0),
-            },
-          ])
-        );
-
-        const merged: BillWithTally[] = billsData.map((b) => ({
-          ...b,
-          ...(tallyMap.get(b.bill_id) ?? { support_count: 0, oppose_count: 0, total_votes: 0 }),
-        }));
-        setBills(merged);
-
-        if (user) {
-          setUserVotes(
-            new Map((uvData ?? []).map((uv) => [uv.bill_id!, uv]))
-          );
-        }
-
-        // Fetch district tallies for "Matched Majority" filter — aggregated server-side,
-        // scoped to the signed-in user's own district (safe for an arbitrary bill_id list
-        // since membership is always resolved from auth.uid(), never client-supplied)
-        let dTallies: { bill_id: string; support_count: number; oppose_count: number }[] = [];
-
-        if (user) {
-          const { data: dt } = await supabase.rpc('my_district_bill_tallies', {
-            p_bill_ids: billIds,
-            p_legislative_body_id: currentBodyId,
-          });
-          dTallies = dt ?? [];
-        }
-
-        setDistrictTallies(dTallies);
-
-        setCache(cacheKey, {
-          bills: merged,
-          userVotes: user
-            ? [...new Map((uvData ?? []).map((uv) => [uv.bill_id!, uv])).entries()]
-            : [],
-          districtTallies: dTallies,
-        });
+        const rows = data ?? [];
+        const computedHasMore = rows.length === PAGE_SIZE && (count === null || rows.length < count);
+        setBills(rows);
+        setTotalCount(count ?? null);
+        setHasMore(computedHasMore);
+        setCache(cacheKey, { bills: rows, totalCount: count ?? null, hasMore: computedHasMore });
       } catch (err) {
+        if (cancelled) return;
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
         logError({ action: 'load_bill_feed', userId: user?.id ?? null, errorMessage: msg });
         setError("We couldn't load bills right now. Please try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     load();
-  }, [user, currentBodyId, statusFilter]);
+    return () => { cancelled = true; };
+  }, [user, currentBodyId, statusFilter, voteFilter, topicFilter, sortBy, buildQuery]);
 
-  const filteredBills = useMemo(() => {
-    let result = [...bills];
+  // Count of bills matching body+status alone (ignoring the vote/topic filters) —
+  // distinguishes "this body/status has zero bills" (generic empty state) from
+  // "bills exist, but none match the current vote/topic filter" (Clear filters state).
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    async function loadStatusOnlyCount() {
+      let q = supabase.from('my_bill_feed').select('bill_id', { count: 'exact', head: true });
+      if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
+      if (statusFilter === 'active') {
+        q = q.eq('status', 'active');
+        if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
+      } else if (statusFilter === 'passed') {
+        q = q.eq('status', 'passed');
+      }
+      const { count } = await q;
+      if (!cancelled) setStatusOnlyCount(count ?? 0);
+    }
+    loadStatusOnlyCount();
+    return () => { cancelled = true; };
+  }, [user, currentBodyId, statusFilter, requiresCommitteeReport]);
 
-    // Status filter — "active" additionally means "actually votable": for
-    // LegiScan-sourced bodies (PA House/Senate), a bill still sitting in
-    // committee shouldn't show up as an active bill to vote on. City
-    // Council is unaffected (see isBillVotable) — every bill here already
-    // shares the signed-in user's currently selected body.
-    if (statusFilter === 'active') result = result.filter(b => isBillVotable(b, currentBody?.requires_committee_report ?? false));
-    else if (statusFilter === 'passed') result = result.filter(b => b.status === 'passed');
+  // "Bills waiting for your vote" — scoped to active/votable bills in the current
+  // body, independent of the vote/topic filter currently on screen.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    async function loadUnvoted() {
+      let q = supabase.from('my_bill_feed').select('bill_id', { count: 'exact', head: true }).is('my_vote', null);
+      if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
+      q = q.eq('status', 'active');
+      if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
+      const { count } = await q;
+      if (!cancelled) setUnvotedActiveCount(count ?? 0);
+    }
+    loadUnvoted();
+    return () => { cancelled = true; };
+  }, [user, currentBodyId, requiresCommitteeReport]);
 
-    // Vote filter
-    if (voteFilter === 'not-voted') result = result.filter(b => !userVotes.has(b.bill_id));
-    else if (voteFilter === 'voted') result = result.filter(b => userVotes.has(b.bill_id));
-    else if (voteFilter === 'matched-majority') result = result.filter(b => {
-      const uv = userVotes.get(b.bill_id);
-      if (!uv) return false;
-      const t = districtTallies.find(v => v.bill_id === b.bill_id);
-      const ds = t?.support_count ?? 0;
-      const dop = t?.oppose_count ?? 0;
-      if (ds + dop < 2 || ds === dop) return false;
-      const maj = ds > dop ? 'support' : 'oppose';
-      return uv.vote === maj;
-    });
+  // Has this user ever cast a vote on anything — governs whether the "No active
+  // bills right now" empty state shows for a brand-new user.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    async function checkEverVoted() {
+      const { count } = await supabase.from('user_votes').select('user_vote_id', { count: 'exact', head: true }).eq('user_id', user!.id);
+      if (!cancelled) setHasEverVoted((count ?? 0) > 0);
+    }
+    checkEverVoted();
+    return () => { cancelled = true; };
+  }, [user]);
 
-    // Topic filter
-    if (topicFilter !== 'all') result = result.filter(b => getTopicTag(b.title, b.summary).label === topicFilter);
+  async function loadMore() {
+    if (loadingMore || !hasMore || !user) return;
+    setLoadingMore(true);
+    const generation = loadGenerationRef.current;
+    try {
+      const { data, error: err } = await buildQuery(bills.length, false);
+      if (err) throw err;
+      if (generation !== loadGenerationRef.current) return;
+      const rows = data ?? [];
+      setBills((prev) => [...prev, ...rows]);
+      setHasMore(rows.length === PAGE_SIZE);
+    } catch (err) {
+      const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
+      logError({ action: 'load_bill_feed_more', userId: user?.id ?? null, errorMessage: msg });
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
-    // Sort
-    if (sortBy === 'newest') result.sort((a, b) => new Date(b.introduced_date ?? b.created_at).getTime() - new Date(a.introduced_date ?? a.created_at).getTime());
-    else if (sortBy === 'oldest') result.sort((a, b) => new Date(a.introduced_date ?? a.created_at).getTime() - new Date(b.introduced_date ?? b.created_at).getTime());
-    else if (sortBy === 'most-votes') result.sort((a, b) => b.total_votes - a.total_votes);
-    else if (sortBy === 'topic') result.sort((a, b) => getTopicTag(a.title, a.summary).label.localeCompare(getTopicTag(b.title, b.summary).label));
-    else if (sortBy === 'highest-support') result.sort((a, b) => {
-      const aPct = a.total_votes > 0 ? a.support_count / a.total_votes : -1;
-      const bPct = b.total_votes > 0 ? b.support_count / b.total_votes : -1;
-      return bPct - aPct;
-    });
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
 
-    return result;
-  }, [bills, statusFilter, voteFilter, topicFilter, sortBy, userVotes, districtTallies, currentBody]);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMoreRef.current();
+    }, { rootMargin: '200px' });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [bills.length]);
 
   const activeFilterCount = [
     statusFilter !== 'active',
@@ -235,26 +247,29 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
     );
   }
 
-  const unvotedCount = filteredBills.filter((b) => !userVotes.has(b.bill_id)).length;
-  const isFirstTimeUser = userVotes.size === 0;
+  // "Some bills exist for this body/status" — gates the top bar/drawer and
+  // distinguishes the two empty states below. Defaults to bills.length>0 while
+  // the (separately fetched) status-only count hasn't resolved yet.
+  const hasAnyForStatus = (statusOnlyCount ?? bills.length) > 0;
+  const isFirstTimeUser = !hasEverVoted;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Bills waiting bar */}
-      {bills.length > 0 && (
-        unvotedCount > 0 ? (
+      {hasAnyForStatus && (
+        unvotedActiveCount > 0 ? (
           <div style={{
             background: '#1B4332', borderRadius: 8, padding: '9px 12px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
-              {unvotedCount} bill{unvotedCount !== 1 ? 's' : ''} waiting for your vote
+              {unvotedActiveCount} bill{unvotedActiveCount !== 1 ? 's' : ''} waiting for your vote
             </span>
             <span style={{
               background: 'rgba(255,255,255,0.2)', color: 'white',
               fontSize: 13, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
             }}>
-              {unvotedCount}
+              {unvotedActiveCount}
             </span>
           </div>
         ) : (
@@ -270,7 +285,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
       )}
 
       {/* Filter summary bar + drawer */}
-      {bills.length > 0 && (
+      {hasAnyForStatus && (
         <div>
           {/* Summary bar */}
           <div
@@ -323,7 +338,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
             {/* Right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                {filteredBills.length} {filteredBills.length === 1 ? 'bill' : 'bills'}
+                {totalCount ?? bills.length} {(totalCount ?? bills.length) === 1 ? 'bill' : 'bills'}
               </span>
               <i
                 className="fa-solid fa-chevron-down"
@@ -458,7 +473,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
       )}
 
       {/* Bill cards */}
-      {bills.length === 0 ? (
+      {bills.length === 0 && !hasAnyForStatus ? (
         !isFirstTimeUser && (
           <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '40vh', gap: 0 }}>
             <i className="fa-solid fa-hand" style={{ fontSize: 32, color: '#1B4332', marginBottom: 10 }} />
@@ -468,7 +483,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
             </p>
           </div>
         )
-      ) : filteredBills.length === 0 ? (
+      ) : bills.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center" style={{ minHeight: '30vh', gap: 0, padding: '0 20px' }}>
           <i className="fa-solid fa-filter-circle-xmark" style={{ fontSize: 24, color: '#94a3b8', display: 'block', marginBottom: 8 }} />
           <p style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', marginBottom: 4 }}>No bills match your filters.</p>
@@ -485,18 +500,31 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
           </button>
         </div>
       ) : (
-        filteredBills.map((bill) => {
-          const uv = userVotes.get(bill.bill_id) ?? null;
-          return (
-            <BillCard
-              key={bill.bill_id}
-              bill={bill}
-              userVote={uv}
-              isLoggedIn={!!user}
-              onTap={() => onNavigateToBill(bill.bill_id)}
-            />
-          );
-        })
+        bills.map((bill) => (
+          <BillCard
+            key={bill.bill_id}
+            bill={bill}
+            userVote={bill.my_vote ? { vote: bill.my_vote } : null}
+            isLoggedIn={!!user}
+            onTap={() => onNavigateToBill(bill.bill_id)}
+          />
+        ))
+      )}
+
+      {bills.length > 0 && (
+        <div ref={sentinelRef} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+          {loadingMore && (
+            <div className="flex gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span
+                  key={delay}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ background: '#1B4332', animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

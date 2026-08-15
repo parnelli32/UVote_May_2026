@@ -66,9 +66,28 @@ export function AdminPage({ onNavigateHome, navProps }: AdminPageProps) {
     setReps(data ?? []);
   }, []);
 
+  // Feeds RepVotesTab's bill pickers, which need the complete bill list (not a
+  // browsing page) — paginate through in PostgREST's max page size (api.max_rows,
+  // 1000) rather than a single unbounded select, which silently truncated PA
+  // House's 2,500+ bills to the first 1,000 with no error.
   const loadBills = useCallback(async () => {
-    const { data } = await supabase.from('bills').select('*').order('created_at', { ascending: false });
-    setBills(data ?? []);
+    const PAGE_SIZE = 1000;
+    const all: Bill[] = [];
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data } = await supabase
+        .from('bills')
+        .select('*')
+        // created_at has real collisions (LegiScan bulk-inserts many bills in one
+        // batch with an identical timestamp) — bill_id as a tie-breaker keeps
+        // .range() pagination deterministic across page boundaries.
+        .order('created_at', { ascending: false })
+        .order('bill_id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < PAGE_SIZE) break;
+    }
+    setBills(all);
   }, []);
 
   useEffect(() => {

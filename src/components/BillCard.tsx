@@ -1,7 +1,14 @@
 import { getTopicTag, getSummaryPreview } from '../lib/billUtils';
-import type { Bill, UserVote } from '../lib/types';
 
-export type BillWithTally = Bill & {
+// Deliberately narrower than the full `Bill` row — this is exactly what the card
+// renders, so it's satisfied structurally by both `Bill` and the `my_bill_feed`
+// view row HomeTab passes in, no cast needed at the call site.
+export type BillWithTally = {
+  bill_id: string;
+  title: string;
+  summary: string | null;
+  status: string;
+  topic?: string | null;
   support_count: number;
   oppose_count: number;
   total_votes: number;
@@ -14,7 +21,7 @@ export function BillCard({
   onTap,
 }: {
   bill: BillWithTally;
-  userVote: UserVote | null;
+  userVote: { vote: string } | null;
   isLoggedIn: boolean;
   onTap: () => void;
 }) {
