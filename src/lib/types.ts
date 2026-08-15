@@ -263,6 +263,33 @@ export type Database = {
           referencedColumns: ['voting_block_id'];
         }];
       };
+      user_districts: {
+        Row: {
+          user_district_id: string;
+          user_id: string;
+          legislative_body_id: string;
+          district_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_districts']['Row'], 'user_district_id' | 'created_at'> & {
+          user_district_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_districts']['Insert']>;
+        Relationships: [{
+          foreignKeyName: 'user_districts_district_id_fkey';
+          columns: ['district_id'];
+          isOneToOne: false;
+          referencedRelation: 'districts';
+          referencedColumns: ['district_id'];
+        }, {
+          foreignKeyName: 'user_districts_legislative_body_id_fkey';
+          columns: ['legislative_body_id'];
+          isOneToOne: false;
+          referencedRelation: 'legislative_bodies';
+          referencedColumns: ['legislative_body_id'];
+        }];
+      };
       user_demographics: {
         Row: {
           user_id: string;
@@ -325,9 +352,11 @@ export type Database = {
         Args: { p_representative_id: string };
         Returns: { score: number | null; qualifying_bills: number | null }[];
       };
-      // Calling user vs. their own district's majority (bills their rep also voted on).
+      // Calling user vs. their own district's majority (bills their rep also voted on),
+      // scoped to one legislative body — a user can hold a separate district (and
+      // separate score) per body via user_districts.
       district_score: {
-        Args: Record<string, never>;
+        Args: { p_legislative_body_id: string };
         Returns: { score: number | null; qualifying_bills: number | null; matched_bills: number | null }[];
       };
       // Calling user vs. a given representative's votes.
@@ -347,10 +376,17 @@ export type Database = {
           district_majority: 'support' | 'oppose' | null;
         }[];
       };
-      // Per-bill support/oppose tallies among the calling user's own district.
+      // Per-bill support/oppose tallies among the calling user's own district,
+      // scoped to one legislative body (see district_score).
       my_district_bill_tallies: {
-        Args: { p_bill_ids: string[] };
+        Args: { p_bill_ids: string[]; p_legislative_body_id: string };
         Returns: { bill_id: string; support_count: number; oppose_count: number }[];
+      };
+      // Point-in-polygon resolution of a lat/lng against the PA House/Senate
+      // boundary tables — never exposes raw boundary geometry, only matched ids.
+      resolve_user_state_districts: {
+        Args: { p_lat: number; p_lng: number };
+        Returns: { legislative_body_id: string; district_id: string }[];
       };
       // Total row count of user_votes (admin dashboard stat).
       user_votes_total_count: {
@@ -441,6 +477,7 @@ export type ErrorLog = Database['public']['Tables']['error_logs']['Row'];
 export type VotingBlock = Database['public']['Tables']['voting_blocks']['Row'];
 export type VotingBlockMember = Database['public']['Tables']['voting_block_members']['Row'];
 export type UserDemographics = Database['public']['Tables']['user_demographics']['Row'];
+export type UserDistrict = Database['public']['Tables']['user_districts']['Row'];
 
 // The 9 census categories `submit_demographics` accepts, keyed by system_category slug.
 export const RACE_ETHNICITY_OPTIONS = [

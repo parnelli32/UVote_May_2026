@@ -39,8 +39,8 @@ type BillDetailPageProps = {
   navProps?: NavProps;
 };
 
-export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onSignUp, navProps }: BillDetailPageProps) {
-  const { user, profile } = useAuth();
+export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onSignUp, navProps }: BillDetailPageProps) {
+  const { user, profile, legislativeBodies } = useAuth();
 
   const [bill, setBill] = useState<Bill | null>(null);
   const [blockPositions, setBlockPositions] = useState<BillVotingBlockPosition[]>([]);
@@ -625,6 +625,10 @@ export function BillDetailPage({ billId, onBack, onNavigateToRep, onNavigateToVo
                 onNavigateToRep={onNavigateToRep}
                 onShare={handleShare}
                 passedBySuspension={bill.passed_by_suspension ?? false}
+                legislativeBodyName={
+                  legislativeBodies.find((b) => b.legislative_body_id === bill.legislative_body_id)?.name
+                  ?? 'Philadelphia City Council'
+                }
               />
               {bill.status === 'active' && userVote && (
                 <BillPrioritySection
@@ -653,6 +657,7 @@ type RepRevealProps = {
   onNavigateToRep: (repId: string) => void;
   onShare: () => void;
   passedBySuspension: boolean;
+  legislativeBodyName: string;
 };
 
 function RepRevealSection({
@@ -665,6 +670,7 @@ function RepRevealSection({
   onNavigateToRep,
   onShare,
   passedBySuspension,
+  legislativeBodyName,
 }: RepRevealProps) {
   const repId = districtRepVote?.representative_id ?? districtRepVote?.representatives?.representative_id;
 
@@ -700,7 +706,7 @@ function RepRevealSection({
               Passed by suspension of rules
             </p>
             <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-              Individual member votes were not recorded for this bill. Philadelphia City Council passed it by suspending normal voting procedures.
+              Individual member votes were not recorded for this bill. {legislativeBodyName} passed it by suspending normal voting procedures.
             </p>
           </div>
         </div>

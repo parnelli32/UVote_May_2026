@@ -1,4 +1,3 @@
-import { useAuth } from '../context/AuthContext';
 import { HeaderDropdown } from './HeaderDropdown';
 
 type AppHeaderProps = {
@@ -8,8 +7,6 @@ type AppHeaderProps = {
 };
 
 export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter }: AppHeaderProps) {
-  const { districtName } = useAuth();
-
   return (
     <header
       className="flex-shrink-0 flex items-center justify-between px-3.5"
@@ -23,7 +20,6 @@ export function AppHeader({ onNavigateToHowItWorks, onNavigateToAbout, onNavigat
         </div>
       </div>
       <HeaderDropdown
-        districtName={districtName}
         onNavigateToHowItWorks={onNavigateToHowItWorks}
         onNavigateToAbout={onNavigateToAbout}
         onNavigateToElectionCenter={onNavigateToElectionCenter}

@@ -133,6 +133,10 @@ function AppInner() {
     setRoute({ name: 'userVotingHistory', preloadedRows: rows });
   }
 
+  // Onboarding content (OnboardingGuide.tsx) is hand-authored for City
+  // Council's process specifically, not driven by LEGISLATIVE_GUIDES per
+  // body — so this stays keyed to Council only until PA-specific onboarding
+  // content exists, rather than re-showing Council content under a PA body.
   useEffect(() => {
     if (!user || !profile) return;
     const seen = profile.intro_seen_bodies ?? [];

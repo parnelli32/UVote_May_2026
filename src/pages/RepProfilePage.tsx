@@ -51,7 +51,7 @@ type MyAlignmentScore = {
 
 type AtLargeRep = Pick<Representative, 'representative_id' | 'first_name' | 'last_name' | 'title'>;
 
-export function RepProfilePage({ repId, onBack, onNavigateToBill, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onNavigateToRepHistory, navProps }: RepProfilePageProps) {
+export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onNavigateToRepHistory, navProps }: RepProfilePageProps) {
   const { user } = useAuth();
 
   const [rep, setRep] = useState<Representative | null>(null);
