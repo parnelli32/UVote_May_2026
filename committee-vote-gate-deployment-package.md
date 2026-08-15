@@ -72,7 +72,7 @@ Function secrets (`CRON_SECRET`, `LEGISCAN_API_KEY`) are unchanged — this is
 a redeploy of the same function slot, nothing new needs to be set.
 
 **Normal sync is unchanged** — the existing cron schedule (or manual
-`{{"phase": "people"}}` / `{{"phase": "bills", "limit": N}}` calls) now also
+`{"phase": "people"}` / `{"phase": "bills", "limit": N}` calls) now also
 populates `reported_from_committee_at` on every bill it touches, with no
 different invocation shape.
 
@@ -83,12 +83,12 @@ before this field existed:
 curl -X POST 'https://<project-ref>.supabase.co/functions/v1/legiscan-sync' \
   -H 'x-cron-secret: <the CRON_SECRET you set>' \
   -H 'Content-Type: application/json' \
-  -d '{{"phase": "backfill", "limit": 5}}'
+  -d '{"phase": "backfill", "limit": 5}'
 ```
 
 Response:
 ```json
-{{"ok":true,"phase":"backfill","limit":5,"updated":5,"failures":0,"remaining":3988,"totalRemaining":3993}}
+{"ok":true,"phase":"backfill","limit":5,"updated":5,"failures":0,"remaining":3988,"totalRemaining":3993}
 ```
 
 `remaining` is how many still-unchecked bills are left. Loop until it's `0`:
@@ -98,7 +98,7 @@ while true; do
   RESPONSE=$(curl -s -X POST 'https://<project-ref>.supabase.co/functions/v1/legiscan-sync' \
     -H 'x-cron-secret: <the CRON_SECRET you set>' \
     -H 'Content-Type: application/json' \
-    -d '{{"phase": "backfill", "limit": 5}}')
+    -d '{"phase": "backfill", "limit": 5}')
   echo "$RESPONSE"
   REMAINING=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('remaining', -1))" 2>/dev/null)
   if [ "$REMAINING" = "0" ]; then
