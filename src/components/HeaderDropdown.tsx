@@ -27,10 +27,10 @@ export function HeaderDropdown({
       setCountsLoading(true);
       try {
         const bodyIds = legislativeBodies.map((b) => b.legislative_body_id);
-        // Active-bill totals use head:true exact counts rather than fetching rows —
+        // Both sides use head:true exact counts rather than fetching rows —
         // some bodies (e.g. PA House) have well over PostgREST's default 1000-row
         // page size, so counting fetched rows client-side would silently undercount.
-        const [totalCountsRes, votedActiveRes] = await Promise.all([
+        const [totalCountsRes, votedActiveCountsRes] = await Promise.all([
           Promise.all(
             bodyIds.map((bodyId) =>
               supabase
@@ -41,20 +41,20 @@ export function HeaderDropdown({
                 .then((res) => [bodyId, res.count ?? 0] as const)
             )
           ),
-          supabase
-            .from('user_votes')
-            .select('bill_id, bills!inner(legislative_body_id)')
-            .eq('user_id', user!.id)
-            .eq('bills.status', 'active')
-            .in('bills.legislative_body_id', bodyIds),
+          Promise.all(
+            bodyIds.map((bodyId) =>
+              supabase
+                .from('user_votes')
+                .select('bill_id, bills!inner(legislative_body_id)', { count: 'exact', head: true })
+                .eq('user_id', user!.id)
+                .eq('bills.status', 'active')
+                .eq('bills.legislative_body_id', bodyId)
+                .then((res) => [bodyId, res.count ?? 0] as const)
+            )
+          ),
         ]);
 
-        const votedActiveCounts = new Map<string, number>();
-        for (const row of (votedActiveRes.data ?? []) as { bills: { legislative_body_id: string } | null }[]) {
-          const bodyId = row.bills?.legislative_body_id;
-          if (!bodyId) continue;
-          votedActiveCounts.set(bodyId, (votedActiveCounts.get(bodyId) ?? 0) + 1);
-        }
+        const votedActiveCounts = new Map(votedActiveCountsRes);
 
         const counts = new Map<string, number>();
         for (const [bodyId, total] of totalCountsRes) {
