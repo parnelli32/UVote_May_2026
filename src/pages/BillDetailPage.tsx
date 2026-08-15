@@ -30,7 +30,6 @@ type RepVoteWithRep = RepVote & {
 
 type BillDetailPageProps = {
   billId: string;
-  onBack: () => void;
   onNavigateToRep: (repId: string) => void;
   onNavigateToVotingBlock: (blockId: string) => void;
   onNavigateToHowItWorks: () => void;
