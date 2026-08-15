@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
@@ -104,8 +104,10 @@ export function BillsTab({
   }
 
   // Reload from the first page — used on mount, on search change, and after save/delete.
+  const loadGenerationRef = useRef(0);
   const load = useCallback(async (search: string) => {
     setLoading(true);
+    loadGenerationRef.current += 1;
     const { data } = await billsQuery(search).range(0, PAGE_SIZE - 1);
     const rows = data ?? [];
     setBills(rows);
@@ -119,12 +121,17 @@ export function BillsTab({
   async function loadMore() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
+    const generation = loadGenerationRef.current;
     const { data } = await billsQuery(debouncedSearch).range(bills.length, bills.length + PAGE_SIZE - 1);
-    const rows = data ?? [];
-    setBills((prev) => [...prev, ...rows]);
-    setHasMore(rows.length === PAGE_SIZE);
-    const moreCounts = await fetchSponsorCounts(rows.map((b) => b.bill_id));
-    setBillSponsorCounts((prev) => new Map([...prev, ...moreCounts]));
+    if (generation === loadGenerationRef.current) {
+      const rows = data ?? [];
+      setBills((prev) => [...prev, ...rows]);
+      setHasMore(rows.length === PAGE_SIZE);
+      const moreCounts = await fetchSponsorCounts(rows.map((b) => b.bill_id));
+      if (generation === loadGenerationRef.current) {
+        setBillSponsorCounts((prev) => new Map([...prev, ...moreCounts]));
+      }
+    }
     setLoadingMore(false);
   }
 

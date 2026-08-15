@@ -35,8 +35,10 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
 
   const requiresCommitteeReport = currentBody?.requires_committee_report ?? false;
 
-  const buildQuery = useCallback((offset: number) => {
-    let q = supabase.from('my_bill_feed').select('*', { count: 'exact' });
+  const buildQuery = useCallback((offset: number, withCount: boolean = true) => {
+    let q = withCount
+      ? supabase.from('my_bill_feed').select('*', { count: 'exact' })
+      : supabase.from('my_bill_feed').select('*');
 
     if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
 
@@ -65,9 +67,11 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
   }, [currentBodyId, statusFilter, voteFilter, topicFilter, sortBy, requiresCommitteeReport]);
 
   // Initial load / reset to page 1 whenever the user, body, or any filter changes.
+  const loadGenerationRef = useRef(0);
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    loadGenerationRef.current += 1;
 
     async function load() {
       setLoading(true);
@@ -89,10 +93,11 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
         if (cancelled) return;
 
         const rows = data ?? [];
+        const computedHasMore = rows.length === PAGE_SIZE && (count === null || rows.length < count);
         setBills(rows);
         setTotalCount(count ?? null);
-        setHasMore(rows.length === PAGE_SIZE && (count === null || rows.length < count));
-        setCache(cacheKey, { bills: rows, totalCount: count ?? null, hasMore: rows.length === PAGE_SIZE });
+        setHasMore(computedHasMore);
+        setCache(cacheKey, { bills: rows, totalCount: count ?? null, hasMore: computedHasMore });
       } catch (err) {
         if (cancelled) return;
         const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
@@ -161,9 +166,11 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
   async function loadMore() {
     if (loadingMore || !hasMore || !user) return;
     setLoadingMore(true);
+    const generation = loadGenerationRef.current;
     try {
-      const { data, error: err } = await buildQuery(bills.length);
+      const { data, error: err } = await buildQuery(bills.length, false);
       if (err) throw err;
+      if (generation !== loadGenerationRef.current) return;
       const rows = data ?? [];
       setBills((prev) => [...prev, ...rows]);
       setHasMore(rows.length === PAGE_SIZE);
