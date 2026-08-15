@@ -27,15 +27,38 @@ export function HeaderDropdown({
       setCountsLoading(true);
       try {
         const bodyIds = legislativeBodies.map((b) => b.legislative_body_id);
-        const [billsRes, votesRes] = await Promise.all([
-          supabase.from('bills').select('bill_id, legislative_body_id').eq('status', 'active').in('legislative_body_id', bodyIds),
-          supabase.from('user_votes').select('bill_id').eq('user_id', user!.id),
+        // Active-bill totals use head:true exact counts rather than fetching rows —
+        // some bodies (e.g. PA House) have well over PostgREST's default 1000-row
+        // page size, so counting fetched rows client-side would silently undercount.
+        const [totalCountsRes, votedActiveRes] = await Promise.all([
+          Promise.all(
+            bodyIds.map((bodyId) =>
+              supabase
+                .from('bills')
+                .select('bill_id', { count: 'exact', head: true })
+                .eq('status', 'active')
+                .eq('legislative_body_id', bodyId)
+                .then((res) => [bodyId, res.count ?? 0] as const)
+            )
+          ),
+          supabase
+            .from('user_votes')
+            .select('bill_id, bills!inner(legislative_body_id)')
+            .eq('user_id', user!.id)
+            .eq('bills.status', 'active')
+            .in('bills.legislative_body_id', bodyIds),
         ]);
-        const votedIds = new Set((votesRes.data ?? []).map((v) => v.bill_id));
+
+        const votedActiveCounts = new Map<string, number>();
+        for (const row of (votedActiveRes.data ?? []) as { bills: { legislative_body_id: string } | null }[]) {
+          const bodyId = row.bills?.legislative_body_id;
+          if (!bodyId) continue;
+          votedActiveCounts.set(bodyId, (votedActiveCounts.get(bodyId) ?? 0) + 1);
+        }
+
         const counts = new Map<string, number>();
-        for (const b of billsRes.data ?? []) {
-          if (b.bill_id && votedIds.has(b.bill_id)) continue;
-          counts.set(b.legislative_body_id!, (counts.get(b.legislative_body_id!) ?? 0) + 1);
+        for (const [bodyId, total] of totalCountsRes) {
+          counts.set(bodyId, Math.max(0, total - (votedActiveCounts.get(bodyId) ?? 0)));
         }
         if (!cancelled) setBodyBillCounts(counts);
       } finally {

@@ -113,7 +113,9 @@ export function DashboardTab({
           legislativeBodyId
             ? supabase.from('bills').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('legislative_body_id', legislativeBodyId)
             : Promise.resolve({ count: 0, data: null, error: null }),
-          supabase.from('user_votes').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
+          legislativeBodyId
+            ? supabase.from('user_votes').select('*, bills!inner(legislative_body_id)', { count: 'exact', head: true }).eq('user_id', user!.id).eq('bills.legislative_body_id', legislativeBodyId)
+            : Promise.resolve({ count: 0, data: null, error: null }),
           legislativeBodyId
             ? supabase.from('bills').select('bill_id, title, summary, topic, status, created_at').eq('status', 'active').eq('legislative_body_id', legislativeBodyId).order('created_at', { ascending: false }).limit(15)
             : Promise.resolve({ data: [], error: null }),

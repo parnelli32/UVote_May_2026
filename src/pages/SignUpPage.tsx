@@ -4,6 +4,7 @@ import { lookupAddressDistrict } from '../lib/ais';
 import { logError } from '../lib/errorLogger';
 import { AddressInput } from '../components/AddressInput';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { PHILLY_COUNCIL_BODY_ID } from '../data/legislativeGuides';
 
 type SignUpPageProps = {
   onSwitchToSignIn: () => void;
@@ -96,10 +97,15 @@ export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: Sig
     let districtId: string | null = null;
     let legislativeBodyId: string | null = null;
     try {
+      // Scoped to legislative_body_id, not just district_number: PA House/Senate
+      // districts now share numeric labels with Council districts (e.g. both a
+      // Council "District 5" and a PA House "District 5" exist), so filtering
+      // on district_number alone returns multiple rows and .maybeSingle() throws.
       const { data: districtData, error: districtError } = await supabase
         .from('districts')
         .select('district_id, legislative_body_id')
         .eq('district_number', councilDistrict)
+        .eq('legislative_body_id', PHILLY_COUNCIL_BODY_ID)
         .not('district_number', 'eq', 'At-Large')
         .maybeSingle();
 
