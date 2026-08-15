@@ -4,6 +4,7 @@ import { lookupAddressDistrict } from '../lib/ais';
 import { logError } from '../lib/errorLogger';
 import { AddressInput } from '../components/AddressInput';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { PHILLY_COUNCIL_BODY_ID } from '../data/legislativeGuides';
 
 type SignUpPageProps = {
   onSwitchToSignIn: () => void;
@@ -63,6 +64,8 @@ export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: Sig
 
     // Step 2: AIS lookup
     let councilDistrict: string;
+    let aisLat: number | null = null;
+    let aisLng: number | null = null;
     try {
       const result = await lookupAddressDistrict(address.trim());
       if (!result.success) {
@@ -78,6 +81,8 @@ export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: Sig
         return;
       }
       councilDistrict = result.councilDistrict;
+      aisLat = result.lat;
+      aisLng = result.lng;
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
       await logError({ action: 'ais_lookup', userId: authUserId, errorMessage: msg });
@@ -90,16 +95,23 @@ export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: Sig
 
     // Step 3: Look up district_id
     let districtId: string | null = null;
+    let legislativeBodyId: string | null = null;
     try {
+      // Scoped to legislative_body_id, not just district_number: PA House/Senate
+      // districts now share numeric labels with Council districts (e.g. both a
+      // Council "District 5" and a PA House "District 5" exist), so filtering
+      // on district_number alone returns multiple rows and .maybeSingle() throws.
       const { data: districtData, error: districtError } = await supabase
         .from('districts')
-        .select('district_id')
+        .select('district_id, legislative_body_id')
         .eq('district_number', councilDistrict)
+        .eq('legislative_body_id', PHILLY_COUNCIL_BODY_ID)
         .not('district_number', 'eq', 'At-Large')
         .maybeSingle();
 
       if (districtError) throw districtError;
       districtId = districtData?.district_id ?? null;
+      legislativeBodyId = districtData?.legislative_body_id ?? null;
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
       await logError({ action: 'district_lookup', userId: authUserId, errorMessage: msg });
@@ -131,6 +143,68 @@ export function SignUpPage({ onSwitchToSignIn, onNavigateToElectionCenter }: Sig
       setError('Your account was created but we could not save your profile. Please contact support.');
       setLoading(false);
       return;
+    }
+
+    // Step 5: mirror the council district into user_districts (the
+    // migration backfill only covers users who existed before it ran — new
+    // signups need this written going forward too). Not user-facing; a
+    // failure here shouldn't block account creation since users.district_id
+    // (written above) is still the live read path.
+    if (districtId && legislativeBodyId) {
+      const { error: userDistrictError } = await supabase.from('user_districts').insert({
+        user_id: authUserId,
+        legislative_body_id: legislativeBodyId,
+        district_id: districtId,
+      });
+      if (userDistrictError) {
+        await logError({
+          action: 'user_districts_council_insert',
+          userId: authUserId,
+          errorMessage: userDistrictError.message,
+          errorCode: userDistrictError.code,
+        });
+      }
+    }
+
+    // Step 6: best-effort PA House/Senate resolution — never blocks signup.
+    // A boundary-seam miss or lookup failure here means the user is fully
+    // signed up for City Council and picks up their state districts later
+    // (bulk backfill / next login), not a hard gate the way the council AIS
+    // lookup above is.
+    if (aisLat != null && aisLng != null) {
+      try {
+        const { data: stateMatches, error: stateError } = await supabase.rpc('resolve_user_state_districts', {
+          p_lat: aisLat,
+          p_lng: aisLng,
+        });
+        if (stateError) throw stateError;
+        for (const match of stateMatches ?? []) {
+          const { error: insertErr } = await supabase.from('user_districts').insert({
+            user_id: authUserId,
+            legislative_body_id: match.legislative_body_id,
+            district_id: match.district_id,
+          });
+          if (insertErr) {
+            await logError({
+              action: 'user_districts_state_insert',
+              userId: authUserId,
+              errorMessage: insertErr.message,
+              errorCode: insertErr.code,
+            });
+          }
+        }
+        if (!stateMatches || stateMatches.length === 0) {
+          await logError({
+            action: 'state_district_resolution_no_match',
+            userId: authUserId,
+            errorMessage: 'resolve_user_state_districts returned no matches for signup address',
+          });
+        }
+      } catch (err: unknown) {
+        const msg = (err as { message?: string })?.message ?? (err instanceof Error ? err.message : null) ?? String(err);
+        await logError({ action: 'state_district_resolution', userId: authUserId, errorMessage: msg });
+        // Deliberately no setError() — this must never block signup.
+      }
     }
 
     setSuccess(true);

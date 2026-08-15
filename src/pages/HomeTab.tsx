@@ -7,10 +7,9 @@ import { getCache, setCache, TTL } from '../lib/cache';
 import type { UserVote } from '../lib/types';
 import { BillCard } from '../components/BillCard';
 import type { BillWithTally } from '../components/BillCard';
-import { BottomNav } from '../components/BottomNav';
 
-export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToBill: (billId: string) => void; onNavigateToAbout: () => void }) {
-  const { user, profile } = useAuth();
+export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: string) => void; onNavigateToAbout: () => void }) {
+  const { user, currentBodyId, currentBody } = useAuth();
   const [bills, setBills] = useState<BillWithTally[]>([]);
   const [userVotes, setUserVotes] = useState<Map<string, UserVote>>(new Map());
   const [districtTallies, setDistrictTallies] = useState<{ bill_id: string; support_count: number; oppose_count: number }[]>([]);
@@ -29,7 +28,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
       setLoading(true);
       setError(null);
       try {
-        const cacheKey = `bills_${user?.id ?? 'anon'}_${statusFilter}`;
+        const cacheKey = `bills_${user?.id ?? 'anon'}_${statusFilter}_${currentBodyId}`;
         type BillsCache = {
           bills: BillWithTally[];
           userVotes: [string, UserVote][];
@@ -44,16 +43,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
           return;
         }
 
-        // Resolve legislative_body_id from user's district
-        let legislativeBodyId: string | null = null;
-        if (profile?.district_id) {
-          const { data: districtData } = await supabase
-            .from('districts')
-            .select('legislative_body_id')
-            .eq('district_id', profile.district_id)
-            .maybeSingle();
-          legislativeBodyId = districtData?.legislative_body_id ?? null;
-        }
+        const legislativeBodyId = currentBodyId;
 
         let billQuery = supabase
           .from('bills')
@@ -125,7 +115,10 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
         let dTallies: { bill_id: string; support_count: number; oppose_count: number }[] = [];
 
         if (user) {
-          const { data: dt } = await supabase.rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+          const { data: dt } = await supabase.rpc('my_district_bill_tallies', {
+            p_bill_ids: billIds,
+            p_legislative_body_id: currentBodyId,
+          });
           dTallies = dt ?? [];
         }
 
@@ -147,7 +140,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
       }
     }
     load();
-  }, [user, profile?.district_id, statusFilter]);
+  }, [user, currentBodyId, statusFilter]);
 
   const filteredBills = useMemo(() => {
     let result = [...bills];
@@ -467,7 +460,7 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
             <i className="fa-solid fa-hand" style={{ fontSize: 32, color: '#1B4332', marginBottom: 10 }} />
             <p style={{ fontSize: 14, fontWeight: 700, color: '#0f1724', marginBottom: 6 }}>No active bills right now.</p>
             <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, maxWidth: 260, textAlign: 'center' }}>
-              Check back soon — bills are added as Philadelphia City Council introduces new legislation.
+              Check back soon — bills are added as {currentBody?.name ?? 'your legislative body'} introduces new legislation.
             </p>
           </div>
         )
@@ -501,90 +494,6 @@ export function HomeTab({ onNavigateToBill, onNavigateToAbout }: { onNavigateToB
           );
         })
       )}
-    </div>
-  );
-}
-
-// ─── WELCOME CARD (kept for reference, no longer rendered) ──────────────────
-
-const WELCOME_STEPS = [
-  {
-    action: 'Vote on a bill',
-    rest: ' — tap Support or Oppose on any bill below. Your vote is anonymous to other users.',
-  },
-  {
-    action: "See your rep's position",
-    rest: ' — after you vote, find out how your council member voted and whether it matched your district\'s majority.',
-  },
-  {
-    action: 'Track alignment',
-    rest: " — your rep's alignment score updates as more constituents vote. The more people participate, the more meaningful the data becomes.",
-  },
-];
-
-function WelcomeCard({ onNavigateToAbout }: { onNavigateToAbout: () => void }) {
-  return (
-    <div style={{
-      background: 'white',
-      borderRadius: 12,
-      border: '1px solid #E2E8E4',
-      borderLeft: '3px solid #1B4332',
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{ padding: '14px 14px 10px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <i className="fa-solid fa-hand" style={{ fontSize: 22, color: '#1B4332', flexShrink: 0 }} />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <p style={{ fontSize: 14, fontWeight: 800, color: '#0f1724', lineHeight: 1.2, margin: '0 0 2px' }}>
-            Welcome to UVote
-          </p>
-          <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4, margin: 0 }}>
-            Your civic voice between elections.
-          </p>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: '#F4F6F0', margin: '0 14px' }} />
-
-      {/* Steps */}
-      <div style={{ padding: '10px 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {WELCOME_STEPS.map((step, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%',
-              background: '#1B4332', color: 'white',
-              fontSize: 12, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, marginTop: 1,
-            }}>
-              {i + 1}
-            </div>
-            <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, margin: 0 }}>
-              <span style={{ fontWeight: 700, color: '#0f1724' }}>{step.action}</span>
-              {step.rest}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        padding: '10px 14px 12px',
-        borderTop: '1px solid #F4F6F0',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <button
-          onClick={onNavigateToAbout}
-          style={{
-            fontSize: 13, fontWeight: 700, color: '#1B4332',
-            background: 'none', border: 'none', padding: 0,
-            cursor: 'pointer', minHeight: 'unset',
-          }}
-        >
-          About UVote →
-        </button>
-      </div>
     </div>
   );
 }

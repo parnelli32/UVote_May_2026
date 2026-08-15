@@ -90,7 +90,7 @@ export function OnboardingGuide({ onComplete }: OnboardingGuideProps) {
   const [bowBounce, setBowBounce] = useState(false);
   const [sparkles, setSparkles] = useState(false);
   const [slide, setSlide] = useState<1 | 2 | 3>(1);
-  const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward');
+  const [, setSlideDir] = useState<'forward' | 'back'>('forward');
   const [transitioning, setTransitioning] = useState(false);
 
   function handleUnwrap() {

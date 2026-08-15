@@ -1,5 +1,5 @@
 export type AisResult =
-  | { success: true; councilDistrict: string }
+  | { success: true; councilDistrict: string; lat: number | null; lng: number | null }
   | { success: false; error: string };
 
 export async function lookupAddressDistrict(address: string): Promise<AisResult> {
@@ -26,5 +26,14 @@ export async function lookupAddressDistrict(address: string): Promise<AisResult>
     };
   }
 
-  return { success: true, councilDistrict };
+  // AIS's response is GeoJSON and already carries [lng, lat] under
+  // features[0].geometry.coordinates — reused here for PA House/Senate
+  // point-in-polygon resolution (see resolve_user_state_districts) instead
+  // of adding a second, paid geocoding dependency (e.g. Google Places
+  // Details) that Places Autocomplete alone does not provide.
+  const coordinates: [number, number] | null | undefined =
+    json?.features?.[0]?.geometry?.coordinates;
+  const [lng, lat] = coordinates ?? [null, null];
+
+  return { success: true, councilDistrict, lat: lat ?? null, lng: lng ?? null };
 }

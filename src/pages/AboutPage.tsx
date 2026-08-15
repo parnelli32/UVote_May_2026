@@ -24,7 +24,7 @@ const CHECK_ITEMS = [
   'Compare your positions to your neighbors and to your representative\'s record over time',
 ];
 
-export function AboutPage({ onBack, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, navProps }: AboutPageProps) {
+export function AboutPage({ onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, navProps }: AboutPageProps) {
   return (
     <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
       <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>

@@ -118,7 +118,7 @@ export function UserVotingHistoryPage({
   preloadedRows,
   navProps,
 }: UserVotingHistoryPageProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, currentBodyId } = useAuth();
 
   const [rows, setRows] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,14 +135,23 @@ export function UserVotingHistoryPage({
 
     async function load() {
       if (preloadedRows) {
-        const converted: HistoryRow[] = (preloadedRows as any[]).map((row) => ({
+        type PreloadedRow = {
+          user_vote_id: string;
+          bill_id: string | null;
+          vote: string;
+          created_at: string;
+          bills: { title: string; bill_number: string | null; status: string } | null;
+          districtMajority: 'support' | 'oppose' | null;
+          repVote: 'support' | 'oppose' | null;
+        };
+        const converted: HistoryRow[] = (preloadedRows as PreloadedRow[]).map((row) => ({
           user_vote_id: row.user_vote_id,
           bill_id: row.bill_id,
           vote: row.vote,
           created_at: row.created_at,
-          title: (row.bills as any)?.title ?? '',
-          bill_number: (row.bills as any)?.bill_number ?? null,
-          status: (row.bills as any)?.status ?? null,
+          title: row.bills?.title ?? '',
+          bill_number: row.bills?.bill_number ?? null,
+          status: row.bills?.status ?? null,
           district_majority: row.districtMajority ?? null,
           rep_vote: row.repVote ?? null,
         }));
@@ -152,11 +161,12 @@ export function UserVotingHistoryPage({
       }
       setLoading(true);
       try {
-        // Step 1 — Fetch user votes with bill data
+        // Step 1 — Fetch user votes with bill data, scoped to the currently selected body
         const { data: userVotes, error: uvErr } = await supabase
           .from('user_votes')
-          .select('user_vote_id, bill_id, vote, created_at, bills(title, bill_number, status)')
+          .select('user_vote_id, bill_id, vote, created_at, bills!inner(title, bill_number, status, legislative_body_id)')
           .eq('user_id', user!.id)
+          .eq('bills.legislative_body_id', currentBodyId)
           .order('created_at', { ascending: false });
         if (uvErr) throw uvErr;
 
@@ -174,7 +184,7 @@ export function UserVotingHistoryPage({
             const majorityMap = new Map<string, { support: number; oppose: number }>();
             if (profile?.district_id) {
               const { data: dtData, error: dtErr } = await supabase
-                .rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+                .rpc('my_district_bill_tallies', { p_bill_ids: billIds, p_legislative_body_id: currentBodyId });
               if (dtErr) {
                 logError({ action: 'load_district_votes_history', userId: user!.id, errorMessage: dtErr.message, errorCode: dtErr.code ?? null });
               }
@@ -265,7 +275,7 @@ export function UserVotingHistoryPage({
     }
 
     load();
-  }, [user, profile?.district_id]);
+  }, [user, profile?.district_id, currentBodyId]);
 
   // Filtering logic
   let filtered = rows;

@@ -42,7 +42,7 @@ type UserProfilePageProps = {
 };
 
 export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout, onNavigateToHowItWorks, onNavigateToElectionCenter, onNavigateToUserVotingHistory, onNavigateToVotingBlock, navProps }: UserProfilePageProps) {
-  const { user, profile, districtName } = useAuth();
+  const { user, profile, districtName, currentBodyId, currentBody } = useAuth();
 
   const [myBlocks, setMyBlocks] = useState<VotingBlockPublic[]>([]);
   const [blocksLoading, setBlocksLoading] = useState(true);
@@ -89,7 +89,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     loadPriorities();
     loadMyBlocks();
     loadDemographics();
-  }, [user, profile?.district_id]);
+  }, [user, profile?.district_id, currentBodyId]);
 
   async function loadDemographics() {
     if (!user) return;
@@ -196,11 +196,12 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     setStatsLoading(true);
     setStatsError(null);
     try {
-      // Total votes
+      // Total votes, scoped to bills in the currently selected legislative body
       const { data: allVotes, error: allVotesErr } = await supabase
         .from('user_votes')
-        .select('user_vote_id, bill_id, vote')
-        .eq('user_id', user.id);
+        .select('user_vote_id, bill_id, vote, bills!inner(legislative_body_id)')
+        .eq('user_id', user.id)
+        .eq('bills.legislative_body_id', currentBodyId);
       if (allVotesErr) throw allVotesErr;
 
       const totalVotes = allVotes?.length ?? 0;
@@ -223,7 +224,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
 
       // District Score and Representation Score — canonical SQL implementations via RPC
       const [districtRes, repRes] = await Promise.all([
-        supabase.rpc('district_score'),
+        supabase.rpc('district_score', { p_legislative_body_id: currentBodyId }),
         districtRepId
           ? supabase.rpc('representation_score', { p_representative_id: districtRepId })
           : Promise.resolve(null),
@@ -257,8 +258,9 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     try {
       const { data: votes, error: votesErr } = await supabase
         .from('user_votes')
-        .select('*, bills(title, bill_number, status)')
+        .select('*, bills!inner(title, bill_number, status, legislative_body_id)')
         .eq('user_id', user.id)
+        .eq('bills.legislative_body_id', currentBodyId)
         .order('created_at', { ascending: false });
 
       if (votesErr) throw votesErr;
@@ -272,7 +274,10 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
 
       // District majority per bill — aggregated server-side (my own district only)
       const districtMajorityMap = new Map<string, 'support' | 'oppose' | null>();
-      const { data: districtTallies } = await supabase.rpc('my_district_bill_tallies', { p_bill_ids: billIds });
+      const { data: districtTallies } = await supabase.rpc('my_district_bill_tallies', {
+        p_bill_ids: billIds,
+        p_legislative_body_id: currentBodyId,
+      });
       for (const t of districtTallies ?? []) {
         const total = t.support_count + t.oppose_count;
         if (total < 2 || t.support_count === t.oppose_count) {
@@ -428,7 +433,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
             {profile.username}
           </p>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.3, margin: 0 }}>
-            {districtName ? `${districtName} · Philadelphia City Council` : 'Philadelphia City Council'}
+            {districtName ? `${districtName} · ${currentBody?.name ?? 'Philadelphia City Council'}` : (currentBody?.name ?? 'Philadelphia City Council')}
           </p>
           {memberSince && (
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.3, margin: 0 }}>

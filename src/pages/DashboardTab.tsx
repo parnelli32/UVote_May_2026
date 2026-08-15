@@ -52,7 +52,7 @@ export function DashboardTab({
   onSwitchToBills: () => void;
   onNavigateToHowItWorks: () => void;
 }) {
-  const { user, profile, districtName } = useAuth();
+  const { user, profile, districtName, currentBodyId, currentBody } = useAuth();
 
   const [rep, setRep] = useState<Pick<Representative, 'representative_id' | 'first_name' | 'last_name' | 'title' | 'party'> | null>(null);
   const [activeBillCount, setActiveBillCount] = useState(0);
@@ -76,7 +76,7 @@ export function DashboardTab({
       setLoading(true);
       setError(null);
 
-      const mainKey = `dash_main_${user!.id}`;
+      const mainKey = `dash_main_${user!.id}_${currentBodyId}`;
       type MainCache = {
         rep: typeof rep;
         activeBillCount: number;
@@ -102,13 +102,7 @@ export function DashboardTab({
       }
 
       try {
-        // Sequential: get leg body ID (small table, fast)
-        const { data: districtData } = await supabase
-          .from('districts')
-          .select('legislative_body_id')
-          .eq('district_id', profile!.district_id!)
-          .maybeSingle();
-        const legislativeBodyId = districtData?.legislative_body_id ?? null;
+        const legislativeBodyId = currentBodyId;
 
         // Phase 1: all main queries in parallel
         const [repRes, activeBillCountRes, userVoteCountRes, spotlightRes, prioritySlotsRes] = await Promise.all([
@@ -119,7 +113,9 @@ export function DashboardTab({
           legislativeBodyId
             ? supabase.from('bills').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('legislative_body_id', legislativeBodyId)
             : Promise.resolve({ count: 0, data: null, error: null }),
-          supabase.from('user_votes').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
+          legislativeBodyId
+            ? supabase.from('user_votes').select('*, bills!inner(legislative_body_id)', { count: 'exact', head: true }).eq('user_id', user!.id).eq('bills.legislative_body_id', legislativeBodyId)
+            : Promise.resolve({ count: 0, data: null, error: null }),
           legislativeBodyId
             ? supabase.from('bills').select('bill_id, title, summary, topic, status, created_at').eq('status', 'active').eq('legislative_body_id', legislativeBodyId).order('created_at', { ascending: false }).limit(15)
             : Promise.resolve({ data: [], error: null }),
@@ -231,7 +227,7 @@ export function DashboardTab({
     }
 
     load();
-  }, [user?.id, profile?.district_id]);
+  }, [user?.id, profile?.district_id, currentBodyId]);
 
   // Separate effect for alignment scores — all three now computed server-side via
   // the canonical constituent_score / district_score / representation_score RPCs
@@ -251,7 +247,7 @@ export function DashboardTab({
     async function computeScore() {
       setScoreLoading(true);
       try {
-        const scoreKey = `dash_scores_${user!.id}`;
+        const scoreKey = `dash_scores_${user!.id}_${currentBodyId}`;
         type ScoreCache = {
           alignmentScore: number | null;
           userDistrictAlignment: number | null;
@@ -268,7 +264,7 @@ export function DashboardTab({
 
         const [constituentRes, districtRes, repAlignRes] = await Promise.all([
           supabase.rpc('constituent_score', { p_representative_id: rep!.representative_id }),
-          supabase.rpc('district_score'),
+          supabase.rpc('district_score', { p_legislative_body_id: currentBodyId }),
           supabase.rpc('representation_score', { p_representative_id: rep!.representative_id }),
         ]);
 
@@ -305,7 +301,7 @@ export function DashboardTab({
 
     computeScore();
     return () => { cancelled = true; };
-  }, [user?.id, rep?.representative_id]);
+  }, [user?.id, rep?.representative_id, currentBodyId]);
 
   if (!profile || !user) return null;
 
@@ -349,7 +345,7 @@ export function DashboardTab({
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
             {districtName ?? 'Your District'}
             {' · '}
-            Philadelphia City Council
+            {currentBody?.name ?? 'Philadelphia City Council'}
           </span>
         </div>
 

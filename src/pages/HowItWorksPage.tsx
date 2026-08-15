@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
+import { useAuth } from '../context/AuthContext';
 import type { NavTab } from '../components/BottomNav';
 import {
   LEGISLATIVE_GUIDES,
@@ -23,8 +24,9 @@ type HowItWorksPageProps = {
 const SUMMARY_STAGE_INDICES = [1, 3, 4]; // stages 2, 4, 5 (0-based)
 
 export function HowItWorksPage({ onBack, onNavigateToAbout, onNavigateToElectionCenter, bodyId, navProps }: HowItWorksPageProps) {
+  const { currentBodyId } = useAuth();
   const guide =
-    LEGISLATIVE_GUIDES[bodyId ?? PHILLY_COUNCIL_BODY_ID] ??
+    LEGISLATIVE_GUIDES[bodyId ?? currentBodyId] ??
     LEGISLATIVE_GUIDES[PHILLY_COUNCIL_BODY_ID];
 
   const [step, setStep] = useState(1);
