@@ -1,3 +1,411 @@
+# UVote committee vote gate — manual deployment package
+
+Same pattern as this repo's other manual-deploy work: everything below is
+Supabase Dashboard (SQL editor + Edge Functions) and `curl` only, no
+Supabase CLI or access token needed.
+
+## What this ships
+
+1. `bills.reported_from_committee_at` — set by `legiscan-sync` from
+   LegiScan's `getBill().progress` array (event 10 = Report Pass, event 11 =
+   Report DNP). A bill still sitting in committee can no longer be voted on.
+2. `legislative_bodies.requires_committee_report` — `true` only for PA
+   House/Senate, so Philadelphia City Council's admin-entered bills stay
+   votable exactly as before this gate existed.
+3. Tightened `user_votes` INSERT/UPDATE RLS so the gate is enforced
+   server-side, not just hidden from lists client-side.
+4. `bill_external_refs.committee_backfilled_at` — a one-time-pass
+   completion tracker for the new `phase: "backfill"` below.
+5. `supabase/functions/legiscan-sync` needs a full redeploy — the normal
+   `phase: "bills"` sync path also now writes `reported_from_committee_at`
+   on every changed bill going forward, and event 11 (Report DNP) now maps
+   `status` to `'failed'` instead of leaving it `'active'` forever. Gains a
+   one-time `phase: "backfill"` to back-compute committee status for bills
+   already synced before this field existed.
+
+`supabase/functions/legiscan-sync` and its schema (`bills`,
+`legislative_bodies`, `bill_external_refs`, `representative_external_refs`,
+etc.) were brought into this repo's `main` branch by the legislative-body-
+switcher PR (#8) — this package builds directly on top of that, it does not
+duplicate it. The one migration below (B1) is additive only: 3 new columns
+plus the RLS gate.
+
+## Order of operations
+
+1. **Part B (SQL)** — run the migration below via the Supabase Dashboard
+   SQL editor.
+2. **Part A (Edge Function)** — paste-and-deploy the self-contained
+   `legiscan-sync` code below, replacing whatever is currently deployed at
+   that function slot. `CRON_SECRET` and `LEGISCAN_API_KEY` are unchanged —
+   this is a redeploy of the same function, not a new one.
+3. **Part C (curl)** — run the one-time backfill, looping until
+   `remaining` is `0`. Normal `phase: "bills"` syncs (manual or on the
+   existing cron schedule) will pick up `reported_from_committee_at`
+   automatically from here on with no separate action needed.
+
+---
+
+## Part B — SQL migration (run first, via Dashboard SQL editor)
+
+### B1 — `20260815100000_add_bills_reported_from_committee_at_and_vote_gate.sql`
+
+```sql
+/*
+  # Gate voting to bills reported out of committee
+
+  1. Changes
+    - Add `bills.reported_from_committee_at timestamptz` (nullable, purely
+      additive — the existing `status` enum's meaning is unchanged). Set by
+      `supabase/functions/legiscan-sync` from LegiScan's
+      `getBill().progress` array: the most recent progress event being 10
+      ("Report Pass") means the bill has been reported out of committee
+      favorably; event 11 ("Report DNP") means it died in committee and is
+      mapped to `status = 'failed'` by the sync function instead of sitting
+      in `active` forever.
+    - Add `legislative_bodies.requires_committee_report boolean NOT NULL
+      DEFAULT false`, set `true` for PA House and PA Senate — the two
+      bodies LegiScan sync actually populates `reported_from_committee_at`
+      for. Bodies that never receive this signal (Philadelphia City
+      Council, whose bills are entered directly by admins and never touch
+      legiscan-sync) are left `false`, so their existing/future bills stay
+      votable exactly as before this gate existed — this migration must not
+      silently break voting on any currently-live jurisdiction. `bills`
+      without a resolvable legislative body (should not happen, but not
+      relied upon) are treated the same as `false`.
+    - Tighten `user_votes` INSERT/UPDATE RLS policies (`uv_insert`,
+      `uv_update`) to additionally require the target bill is votable under
+      the rule above, enforced server-side so a stale/shared link to a
+      still-in-committee bill cannot be used to cast a vote — not just a
+      client-side hide.
+    - Add `bill_external_refs.committee_backfilled_at timestamptz`
+      (nullable). Purely a one-time-pass completion tracker for
+      legiscan-sync's `backfill` phase: distinguishes "checked this bill's
+      committee status and it's genuinely still unreported" (backfilled,
+      `reported_from_committee_at` stays null) from "haven't checked yet"
+      (not backfilled) — without it, a still-in-committee bill would look
+      identical to an unprocessed one and the backfill batch could never
+      converge to 0 remaining.
+
+  2. Notes
+    - Product rationale (captain decision, not re-litigated here): committee
+      is where most bills quietly die, and PA bills remain substantively
+      amendable well after committee (floor amendments, concurrence,
+      conference committee — only full enrollment locks the text), so
+      `status = 'active'` alone is too coarse a votability signal for
+      LegiScan-sourced bills.
+    - Existing PA bills all have `reported_from_committee_at = null` until
+      the one-time backfill (also in legiscan-sync) runs — until then every
+      existing PA bill is correctly gated out of voting, which is the
+      intended effect of shipping this migration ahead of the backfill,
+      not a bug.
+    - `bills`/`legislative_bodies`/`bill_external_refs` themselves already
+      exist as of `20260809120000_create_user_districts_and_bill_external_refs.sql`
+      and `20260809120100_seed_pa_house_and_senate_legislative_bodies.sql`
+      (the legislative-body-switcher PR, #8) — this migration only adds the
+      three new columns and the RLS gate on top of that.
+*/
+
+ALTER TABLE bills ADD COLUMN IF NOT EXISTS reported_from_committee_at timestamptz;
+
+ALTER TABLE legislative_bodies ADD COLUMN IF NOT EXISTS requires_committee_report boolean NOT NULL DEFAULT false;
+
+ALTER TABLE bill_external_refs ADD COLUMN IF NOT EXISTS committee_backfilled_at timestamptz;
+
+-- PA House + PA Senate legislative_body_id values (see
+-- supabase/functions/legiscan-sync/index.ts's PA_HOUSE_BODY_ID /
+-- PA_SENATE_BODY_ID, and 20260809120100_seed_pa_house_and_senate_legislative_bodies.sql).
+UPDATE legislative_bodies
+SET requires_committee_report = true
+WHERE legislative_body_id IN (
+  '3b6dee71-7cbd-41f1-95d0-3f997cf035be', -- PA House
+  '474bb689-6767-4a56-8429-c09c20bc715c'  -- PA Senate
+);
+
+DROP POLICY IF EXISTS "uv_insert" ON user_votes;
+CREATE POLICY "uv_insert"
+  ON user_votes FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM bills b
+      WHERE b.bill_id = user_votes.bill_id
+      AND (
+        b.reported_from_committee_at IS NOT NULL
+        OR NOT COALESCE(
+          (SELECT lb.requires_committee_report FROM legislative_bodies lb WHERE lb.legislative_body_id = b.legislative_body_id),
+          false
+        )
+      )
+    )
+  );
+
+DROP POLICY IF EXISTS "uv_update" ON user_votes;
+CREATE POLICY "uv_update"
+  ON user_votes FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM bills b
+      WHERE b.bill_id = user_votes.bill_id
+      AND (
+        b.reported_from_committee_at IS NOT NULL
+        OR NOT COALESCE(
+          (SELECT lb.requires_committee_report FROM legislative_bodies lb WHERE lb.legislative_body_id = b.legislative_body_id),
+          false
+        )
+      )
+    )
+  );
+```
+
+---
+
+## Part A — Edge Function code (self-contained, dashboard-paste-ready)
+
+Everything inlined into one file with zero local imports (only the `npm:`
+package import, which the Edge Runtime resolves itself at deploy time) and
+no `<Database>` generic on `createClient` (a standalone paste can't
+reference this repo's `src/lib/types.ts`), so it works regardless of
+whether the Dashboard's function editor supports multi-file/relative
+imports. This is the full current file (base sync logic + the committee
+gate additions), not just a diff — paste it in whole to replace whatever
+is currently deployed.
+
+```typescript
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+// Service-role client: bypasses RLS entirely, so every write this makes must be
+// scoped deliberately in application code — there is no policy backstop here.
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically to every
+// Supabase Edge Function at runtime; they do not need to be set as secrets.
+function createAdminClient() {
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceRoleKey) {
+    throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not available in function environment');
+  }
+  return createClient(url, serviceRoleKey);
+}
+
+// ── LegiScan API client ────────────────────────────────────────────────────────────────────
+
+// Minimal typed client for the LegiScan Pull API (free tier, 30,000 queries/month —
+// see report at /Users/ianparnell/firstmate/data/uvote-pa-bills-plan/report.md
+// Section 1, sourced directly from the LegiScan API User Manual v1.91).
+//
+// LIVE-VERIFIED (2026-08-09): every type below was diffed against real
+// responses from getSessionList('PA'), getMasterList(2192), getBill(1905489),
+// getRollCall(1594322), and getSessionPeople(2192) using a captain-provided
+// key — all fields match exactly (real responses carry additional fields
+// this client doesn't type, which is fine; nothing this client reads was
+// missing or shaped differently than assumed). See legiscan-sync/index.ts's
+// header comment for the two real bugs that verification pass caught.
+
+const LEGISCAN_BASE_URL = 'https://api.legiscan.com/';
+
+function apiKey(): string {
+  const key = Deno.env.get('LEGISCAN_API_KEY');
+  if (!key) throw new Error('LEGISCAN_API_KEY is not set');
+  return key;
+}
+
+async function callLegiscan<T>(op: string, params: Record<string, string> = {}): Promise<T> {
+  const url = new URL(LEGISCAN_BASE_URL);
+  url.searchParams.set('key', apiKey());
+  url.searchParams.set('op', op);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`LegiScan ${op} returned HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  if (json.status !== 'OK') {
+    throw new Error(`LegiScan ${op} returned status ${json.status}: ${JSON.stringify(json).slice(0, 500)}`);
+  }
+  return json as T;
+}
+
+type LegiscanSession = {
+  session_id: number;
+  session_name: string;
+  year_start: number;
+  year_end: number;
+  special: number;
+  sine_die: number;
+  prior: number;
+};
+
+async function getSessionList(state: 'PA'): Promise<LegiscanSession[]> {
+  const json = await callLegiscan<{ sessions: LegiscanSession[] }>('getSessionList', { state });
+  return json.sessions;
+}
+
+type LegiscanMasterListEntry = {
+  bill_id: number;
+  number: string;
+  change_hash: string;
+  url: string;
+  status_date: string;
+  status: number;
+  last_action_date: string;
+  last_action: string;
+  title: string;
+  description: string;
+};
+
+// getMasterList returns an object keyed by array index (plus a "session" key) —
+// normalize it to a plain array of entries here so callers never deal with the
+// raw object shape.
+async function getMasterList(sessionId: number): Promise<LegiscanMasterListEntry[]> {
+  const json = await callLegiscan<{ masterlist: Record<string, LegiscanMasterListEntry | LegiscanSession> }>(
+    'getMasterList',
+    { id: String(sessionId) }
+  );
+  return Object.entries(json.masterlist)
+    .filter(([key]) => key !== 'session')
+    .map(([, entry]) => entry as LegiscanMasterListEntry);
+}
+
+type LegiscanSponsor = {
+  people_id: number;
+  party: string;
+  role: string;
+  name: string;
+  first_name: string;
+  last_name: string;
+  district: string;
+  sponsor_type_id: number; // 1 = primary/sponsor, 2 = co-sponsor (per manual)
+};
+
+type LegiscanBillVoteSummary = {
+  roll_call_id: number;
+  date: string;
+  desc: string;
+  yea: number;
+  nay: number;
+  nv: number;
+  absent: number;
+  total: number;
+  passed: number;
+  chamber: string;
+};
+
+type LegiscanBill = {
+  bill_id: number;
+  session_id: number;
+  status: number;
+  status_date: string;
+  title: string;
+  description: string;
+  sponsors: LegiscanSponsor[];
+  votes: LegiscanBillVoteSummary[];
+  progress: { date: string; event: number }[];
+};
+
+async function getBill(billId: number): Promise<LegiscanBill> {
+  const json = await callLegiscan<{ bill: LegiscanBill }>('getBill', { id: String(billId) });
+  return json.bill;
+}
+
+type LegiscanRollCallVote = {
+  people_id: number;
+  vote_id: number;
+  vote_text: 'Yea' | 'Nay' | 'NV' | 'Absent';
+};
+
+type LegiscanRollCall = {
+  roll_call_id: number;
+  bill_id: number;
+  date: string;
+  yea: number;
+  nay: number;
+  nv: number;
+  absent: number;
+  total: number;
+  passed: number;
+  votes: LegiscanRollCallVote[];
+};
+
+async function getRollCall(rollCallId: number): Promise<LegiscanRollCall> {
+  const json = await callLegiscan<{ roll_call: LegiscanRollCall }>('getRollCall', { id: String(rollCallId) });
+  return json.roll_call;
+}
+
+type LegiscanPerson = {
+  people_id: number;
+  party: string;
+  role: string; // "Rep" | "Sen"
+  name: string;
+  first_name: string;
+  last_name: string;
+  district: string; // e.g. "HD-181" / "SD-1"
+};
+
+async function getSessionPeople(sessionId: number): Promise<LegiscanPerson[]> {
+  const json = await callLegiscan<{ sessionpeople: { people: LegiscanPerson[] } }>('getSessionPeople', {
+    id: String(sessionId),
+  });
+  return json.sessionpeople.people;
+}
+
+// ── LegiScan status mapping ────────────────────────────────────────────────────────────────
+
+// Table-driven mapping from LegiScan's numeric bill.status onto UVote's
+// bills.status enum (active | passed | failed | tabled — see BillCard.tsx).
+//
+// LegiScan's documented top-level status codes (LegiScan API User Manual v1.91,
+// revision 20250317, "Bill Status Codes" table), cross-checked live (2026-08-09)
+// against the real PA 2025-2026 session (4,899 bills, id 2192):
+//   0 = N/A / not yet classified — LIVE-VERIFIED as PA's "tabled" mechanism:
+//       4 of the 5 status=0 entries in the real master list had last_action
+//       "Laid on the table (Pursuant to House Rule 71)". This directly
+//       resolves what an earlier version of this file flagged as an
+//       unverified gap ("LegiScan has no top-level status for tabled") — it
+//       turns out it does, just not under a dedicated status code.
+//   1 = Introduced         (3,929 of 4,899 real bills — the modal status)
+//   2 = Engrossed           (passed its chamber of origin — 524 real bills)
+//   3 = Enrolled            (passed both chambers, sent to the governor —
+//                            no real example seen yet in this session)
+//   4 = Passed              (signed into law / adopted — 440 real bills,
+//                            confirmed via last_action "Act No. X of 2026")
+//   5 = Vetoed
+//   6 = Failed              ("Failed" or "Dead" — died in committee, missed a
+//                            legislative deadline, or was otherwise abandoned)
+//
+// This table is deliberately the ONLY place that mapping lives (per report R4:
+// "should be table-driven, not hardcoded if/else, so PA-specific status quirks
+// are easy to patch"). One judgment call remains, to be revisited once a real
+// enrolled bill (status 3) shows up in sync data:
+//   - Enrolled (3) maps to "active" rather than "passed": a bill sent to the
+//     governor isn't law yet, and UVote's product framing ("compare a citizen's
+//     vote against how their representative actually voted") is about the
+//     legislative vote, which has already happened by this point — but a citizen
+//     casting a fresh vote on an enrolled bill is voting on something whose
+//     legislative outcome is already settled. Worth a product-copy decision,
+//     not guessed here.
+const LEGISCAN_STATUS_MAP: Record<number, 'active' | 'passed' | 'failed' | 'tabled'> = {
+  0: 'tabled', // N/A — live-verified as PA's "laid on the table" mechanism
+  1: 'active', // Introduced
+  2: 'active', // Engrossed
+  3: 'active', // Enrolled — see note above, not yet signed into law
+  4: 'passed', // Passed
+  5: 'failed', // Vetoed
+  6: 'failed', // Failed / Dead
+};
+
+const DEFAULT_UVOTE_STATUS: 'active' | 'passed' | 'failed' | 'tabled' = 'active';
+
+function mapLegiscanStatus(legiscanStatus: number | null | undefined): 'active' | 'passed' | 'failed' | 'tabled' {
+  if (legiscanStatus == null) return DEFAULT_UVOTE_STATUS;
+  return LEGISCAN_STATUS_MAP[legiscanStatus] ?? DEFAULT_UVOTE_STATUS;
+}
+
+// ── Sync logic ─────────────────────────────────────────────────────────────────────────────
+
 // LegiScan sync job — PA House + PA Senate, built together per the feasibility
 // report (Section 5, step 2): both chambers are one LegiScan session (the PA
 // General Assembly covers both), differentiated per-bill by bill-number prefix
@@ -148,19 +556,6 @@
 // below derives that from the raw progress array, used both by the normal
 // per-bill sync path and by the one-time backfillCommitteeStatus pass for
 // bills synced before this field existed.
-import { createAdminClient } from '../_shared/supabaseAdmin.ts';
-import {
-  getSessionList,
-  getSessionPeople,
-  getMasterList,
-  getBill,
-  getRollCall,
-  type LegiscanSponsor,
-  type LegiscanPerson,
-} from '../_shared/legiscanClient.ts';
-import { mapLegiscanStatus } from '../_shared/legiscanStatusMap.ts';
-import type { LegiscanBillVoteSummary } from '../_shared/legiscanClient.ts';
-
 const PA_HOUSE_BODY_ID = '3b6dee71-7cbd-41f1-95d0-3f997cf035be';
 const PA_SENATE_BODY_ID = '474bb689-6767-4a56-8429-c09c20bc715c';
 
@@ -514,8 +909,8 @@ async function upsertRollCallVotes(
 // processed, which `limit` already controls — so the fix here is a much
 // more conservative default, not new architecture. Start low and raise it
 // only if logs (see the timing lines below) show comfortable headroom.
-export const DEFAULT_BILL_BATCH_LIMIT = 5;
-export const MAX_BILL_BATCH_LIMIT = 25;
+const DEFAULT_BILL_BATCH_LIMIT = 5;
+const MAX_BILL_BATCH_LIMIT = 25;
 
 // Bulk-fetches every existing legiscan bill_external_refs row into a Map, so
 // syncBills can determine what's changed with ONE paginated read (a few
@@ -753,8 +1148,8 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
 // headroom) — this does one getBill call per candidate, lighter than the
 // full bills-sync path (no sponsor/roll-call upserts), but not assumed
 // cheaper without a real invocation's timing log to back that up.
-export const DEFAULT_BACKFILL_BATCH_LIMIT = 5;
-export const MAX_BACKFILL_BATCH_LIMIT = 25;
+const DEFAULT_BACKFILL_BATCH_LIMIT = 5;
+const MAX_BACKFILL_BATCH_LIMIT = 25;
 
 async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClient>, limit: number) {
   const t0 = Date.now();
@@ -884,3 +1279,88 @@ Deno.serve(async (req) => {
     });
   }
 });
+```
+
+---
+
+## Part C — Invocation
+
+Function secrets (`CRON_SECRET`, `LEGISCAN_API_KEY`) are unchanged — this is
+a redeploy of the same function slot, nothing new needs to be set.
+
+**Normal sync is unchanged** — the existing cron schedule (or manual
+`{{"phase": "people"}}` / `{{"phase": "bills", "limit": N}}` calls) now also
+populates `reported_from_committee_at` on every bill it touches, with no
+different invocation shape.
+
+**New: one-time committee-status backfill**, for bills already synced
+before this field existed:
+
+```bash
+curl -X POST 'https://<project-ref>.supabase.co/functions/v1/legiscan-sync' \
+  -H 'x-cron-secret: <the CRON_SECRET you set>' \
+  -H 'Content-Type: application/json' \
+  -d '{{"phase": "backfill", "limit": 5}}'
+```
+
+Response:
+```json
+{{"ok":true,"phase":"backfill","limit":5,"updated":5,"failures":0,"remaining":3988,"totalRemaining":3993}}
+```
+
+`remaining` is how many still-unchecked bills are left. Loop until it's `0`:
+
+```bash
+while true; do
+  RESPONSE=$(curl -s -X POST 'https://<project-ref>.supabase.co/functions/v1/legiscan-sync' \
+    -H 'x-cron-secret: <the CRON_SECRET you set>' \
+    -H 'Content-Type: application/json' \
+    -d '{{"phase": "backfill", "limit": 5}}')
+  echo "$RESPONSE"
+  REMAINING=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('remaining', -1))" 2>/dev/null)
+  if [ "$REMAINING" = "0" ]; then
+    echo "Backfill complete."
+    break
+  fi
+  if [ -z "$REMAINING" ] || [ "$REMAINING" = "-1" ]; then
+    echo "Could not parse remaining from response — stopping, check the response above for an error."
+    break
+  fi
+  sleep 2
+done
+```
+
+At `limit: 5` and roughly 3,993 total bills, expect on the order of ~800
+calls — one `getBill` call per bill (well within LegiScan's 30,000/month
+free-tier limit), each call otherwise lightweight (no sponsor/roll-call
+upserts, just the committee-status computation). Failures stay in the
+candidate set (retried automatically next call) rather than being silently
+skipped.
+
+## Verification (do this after Part C completes, or on a sample partway through)
+
+Pick a handful of real bills already confirmed to have `rep_votes` rows
+(definitely out of committee — a bill only gets a `rep_votes` row from an
+actual floor vote) and a handful with none, and check:
+
+```sql
+select b.bill_id, b.bill_number, b.status, b.reported_from_committee_at,
+       exists (select 1 from rep_votes rv where rv.bill_id = b.bill_id) as has_rep_votes
+from bills b
+join legislative_bodies lb on lb.legislative_body_id = b.legislative_body_id
+where lb.requires_committee_report = true
+order by b.bill_number
+limit 20;
+```
+
+Bills with `has_rep_votes = true` should essentially always have a non-null
+`reported_from_committee_at` (a floor vote can't happen before committee).
+Cross-check a few against LegiScan's own bill page (`getBill`'s `progress`
+array, or the public LegiScan UI) to confirm the specific date/event lines
+up.
+
+Then confirm the vote gate is real, not just a client-side hide — as an
+authenticated non-admin role, attempt an insert against a bill with
+`reported_from_committee_at IS NULL` and `requires_committee_report = true`;
+it should be rejected by RLS (`new row violates row-level security
+policy`), not silently accepted.

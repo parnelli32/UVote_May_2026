@@ -9,10 +9,12 @@ export type Database = {
           total_districts: number | null;
           total_atlarge: number | null;
           created_at: string;
+          requires_committee_report: boolean;
         };
-        Insert: Omit<Database['public']['Tables']['legislative_bodies']['Row'], 'legislative_body_id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['legislative_bodies']['Row'], 'legislative_body_id' | 'created_at' | 'requires_committee_report'> & {
           legislative_body_id?: string;
           created_at?: string;
+          requires_committee_report?: boolean;
         };
         Update: Partial<Database['public']['Tables']['legislative_bodies']['Insert']>;
         Relationships: [];
@@ -66,6 +68,7 @@ export type Database = {
           passed_by_suspension?: boolean;
           topic?: string | null;
           bill_number?: string | null;
+          reported_from_committee_at?: string | null;
         };
         Insert: Omit<Database['public']['Tables']['bills']['Row'], 'bill_id' | 'created_at'> & {
           bill_id?: string;

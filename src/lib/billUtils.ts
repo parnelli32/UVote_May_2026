@@ -1,3 +1,26 @@
+// A bill is votable once it's `active` AND — for bodies where LegiScan sync
+// supplies committee data (`legislative_bodies.requires_committee_report`) —
+// has actually been reported out of committee (`reported_from_committee_at`
+// set). Bodies that never receive that signal (e.g. Philadelphia City
+// Council, whose bills are entered directly by admins) are exempt via
+// `requiresCommitteeReport: false`, so their bills stay votable exactly as
+// they were before this gate existed. Callers resolve `requiresCommitteeReport`
+// from whichever legislative body the bill belongs to — `currentBody` from
+// `useAuth()` for body-scoped list views (HomeTab/DashboardTab, where every
+// bill on screen shares the signed-in user's selected body), or a lookup
+// against the full `legislativeBodies` array for a specific bill's own body
+// (BillDetailPage, where the bill's body isn't necessarily the currently
+// selected one). This is a display/list-filtering helper only — the real
+// enforcement is the `uv_insert`/`uv_update` RLS policies on `user_votes`.
+export function isBillVotable(
+  bill: { status: string; reported_from_committee_at?: string | null },
+  requiresCommitteeReport: boolean
+): boolean {
+  if (bill.status !== 'active') return false;
+  if (bill.reported_from_committee_at) return true;
+  return !requiresCommitteeReport;
+}
+
 export const BILL_TOPICS = [
   'Housing',
   'Public Safety',

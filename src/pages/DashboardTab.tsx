@@ -103,6 +103,11 @@ export function DashboardTab({
 
       try {
         const legislativeBodyId = currentBodyId;
+        // Bodies where LegiScan sync supplies committee data — a bill still
+        // sitting in committee doesn't count as "active" for votability
+        // purposes here. City Council (requires_committee_report=false)
+        // is unaffected.
+        const requiresCommitteeReport = currentBody?.requires_committee_report ?? false;
 
         // Phase 1: all main queries in parallel
         const [repRes, activeBillCountRes, userVoteCountRes, spotlightRes, prioritySlotsRes] = await Promise.all([
@@ -111,13 +116,21 @@ export function DashboardTab({
             .eq('district_id', profile!.district_id!)
             .maybeSingle(),
           legislativeBodyId
-            ? supabase.from('bills').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('legislative_body_id', legislativeBodyId)
+            ? (() => {
+                let q = supabase.from('bills').select('*', { count: 'exact', head: true }).eq('status', 'active').eq('legislative_body_id', legislativeBodyId);
+                if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
+                return q;
+              })()
             : Promise.resolve({ count: 0, data: null, error: null }),
           legislativeBodyId
             ? supabase.from('user_votes').select('*, bills!inner(legislative_body_id)', { count: 'exact', head: true }).eq('user_id', user!.id).eq('bills.legislative_body_id', legislativeBodyId)
             : Promise.resolve({ count: 0, data: null, error: null }),
           legislativeBodyId
-            ? supabase.from('bills').select('bill_id, title, summary, topic, status, created_at').eq('status', 'active').eq('legislative_body_id', legislativeBodyId).order('created_at', { ascending: false }).limit(15)
+            ? (() => {
+                let q = supabase.from('bills').select('bill_id, title, summary, topic, status, created_at').eq('status', 'active').eq('legislative_body_id', legislativeBodyId).order('created_at', { ascending: false }).limit(15);
+                if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
+                return q;
+              })()
             : Promise.resolve({ data: [], error: null }),
           legislativeBodyId
             ? supabase.from('bill_priorities').select('priority_id, priority_type, bills(status)').eq('user_id', user!.id).eq('legislative_body_id', legislativeBodyId)
