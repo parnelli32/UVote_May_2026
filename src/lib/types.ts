@@ -343,6 +343,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      // bills + vote tallies + the calling user's own vote/majority-match status —
+      // powers the paginated, server-filtered Bills feed (HomeTab.tsx). See
+      // 20260815120000_add_my_bill_feed_view_and_topic_backfill.sql.
+      my_bill_feed: {
+        Row: {
+          bill_id: string;
+          title: string;
+          summary: string | null;
+          bill_text: string | null;
+          introduced_date: string | null;
+          status: string;
+          primary_sponsor: string | null;
+          primary_sponsor_id: string | null;
+          legislative_body_id: string | null;
+          created_at: string;
+          passed_by_suspension: boolean | null;
+          topic: string | null;
+          bill_number: string | null;
+          reported_from_committee_at: string | null;
+          support_count: number;
+          oppose_count: number;
+          total_votes: number;
+          support_pct: number;
+          effective_sort_date: string;
+          my_vote: string | null;
+          matched_district_majority: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       // Rep vs. their own district's (or at-large body's) vote majority.

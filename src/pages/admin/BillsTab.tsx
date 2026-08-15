@@ -49,9 +49,12 @@ export function BillsTab({
   onStatsChange: () => void;
 }) {
   const { user } = useAuth();
+  const PAGE_SIZE = 30;
   const [bills, setBills] = useState<Bill[]>([]);
   const [billSponsorCounts, setBillSponsorCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<BillFormState>(EMPTY_BILL_FORM);
@@ -59,28 +62,71 @@ export function BillsTab({
   const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
   const [billSearch, setBillSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const sortedReps = [...reps].sort((a, b) => a.last_name.localeCompare(b.last_name));
   const repMap = new Map(reps.map((r) => [r.representative_id, r]));
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const [billsRes, sponsorsRes] = await Promise.all([
-      supabase.from('bills').select('*').order('created_at', { ascending: false }),
-      supabase.from('bill_sponsors').select('bill_id, sponsor_type'),
-    ]);
-    setBills(billsRes.data ?? []);
+  // Debounce the search box before it drives a server-side query.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(billSearch.trim()), 300);
+    return () => clearTimeout(t);
+  }, [billSearch]);
+
+  // Co-sponsor counts only for the bills currently on screen — this used to be a
+  // single unbounded fetch of the whole bill_sponsors table, which doesn't scale
+  // any better than the unbounded bills fetch this rewrite replaces.
+  async function fetchSponsorCounts(billIds: string[]): Promise<Map<string, number>> {
+    if (billIds.length === 0) return new Map();
+    const { data } = await supabase.from('bill_sponsors').select('bill_id, sponsor_type').in('bill_id', billIds);
     const counts = new Map<string, number>();
-    for (const row of sponsorsRes.data ?? []) {
+    for (const row of data ?? []) {
       if (row.sponsor_type === 'cosponsor') {
         counts.set(row.bill_id, (counts.get(row.bill_id) ?? 0) + 1);
       }
     }
-    setBillSponsorCounts(counts);
+    return counts;
+  }
+
+  function billsQuery(search: string) {
+    let q = supabase.from('bills').select('*')
+      // created_at has real collisions (LegiScan bulk-inserts many bills in one
+      // batch with an identical timestamp) — bill_id as a tie-breaker keeps
+      // .range() pagination deterministic across page boundaries.
+      .order('created_at', { ascending: false })
+      .order('bill_id', { ascending: true });
+    // Strip characters with special meaning in PostgREST's .or() filter syntax
+    // (comma separates conditions, parens group them) so a search term can't
+    // inject extra filter clauses.
+    const term = search.replace(/[,()]/g, '');
+    if (term) q = q.or(`title.ilike.%${term}%,bill_number.ilike.%${term}%`);
+    return q;
+  }
+
+  // Reload from the first page — used on mount, on search change, and after save/delete.
+  const load = useCallback(async (search: string) => {
+    setLoading(true);
+    const { data } = await billsQuery(search).range(0, PAGE_SIZE - 1);
+    const rows = data ?? [];
+    setBills(rows);
+    setHasMore(rows.length === PAGE_SIZE);
+    setBillSponsorCounts(await fetchSponsorCounts(rows.map((b) => b.bill_id)));
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(debouncedSearch); }, [debouncedSearch, load]);
+
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const { data } = await billsQuery(debouncedSearch).range(bills.length, bills.length + PAGE_SIZE - 1);
+    const rows = data ?? [];
+    setBills((prev) => [...prev, ...rows]);
+    setHasMore(rows.length === PAGE_SIZE);
+    const moreCounts = await fetchSponsorCounts(rows.map((b) => b.bill_id));
+    setBillSponsorCounts((prev) => new Map([...prev, ...moreCounts]));
+    setLoadingMore(false);
+  }
 
   function openAdd() {
     setEditingId(null);
@@ -185,7 +231,7 @@ export function BillsTab({
       }
 
       closeForm();
-      await load();
+      await load(debouncedSearch);
       onStatsChange();
       onToast('Bill saved.');
     } catch (err) {
@@ -203,7 +249,7 @@ export function BillsTab({
       await supabase.from('rep_votes').delete().eq('bill_id', bill.bill_id);
       const { error } = await supabase.from('bills').delete().eq('bill_id', bill.bill_id);
       if (error) throw error;
-      await load();
+      await load(debouncedSearch);
       onStatsChange();
       onToast('Bill deleted.');
     } catch (err) {
@@ -373,60 +419,66 @@ export function BillsTab({
         {loading ? (
           <div style={{ padding: 20, textAlign: 'center' }}><Spinner /></div>
         ) : bills.length === 0 ? (
-          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>No bills yet.</div>
-        ) : (() => {
-          const displayBills = billSearch.trim()
-            ? bills.filter((b) => b.title.toLowerCase().includes(billSearch.toLowerCase()))
-            : bills;
-          if (displayBills.length === 0) {
-            return <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>No bills match your search.</div>;
-          }
-          return displayBills.map((bill, i) => {
-            const st = STATUS_STYLES[bill.status] ?? STATUS_STYLES.tabled;
-            const date = bill.introduced_date ? new Date(bill.introduced_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-            const sponsorRep = bill.primary_sponsor_id ? repMap.get(bill.primary_sponsor_id) : null;
-            const sponsorDisplay = sponsorRep
-              ? `${sponsorRep.first_name} ${sponsorRep.last_name}`
-              : bill.primary_sponsor ?? null;
-            const cosponsorCount = billSponsorCounts.get(bill.bill_id) ?? 0;
-            return (
-              <div key={bill.bill_id} style={{ padding: '11px 14px', borderBottom: i < displayBills.length - 1 ? '1px solid #F4F6F0' : 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', lineHeight: 1.35, marginBottom: 4, wordBreak: 'break-word' }}>{bill.title}</p>
-                  {bill.bill_number && (
-                    <span style={{ fontSize: 10, color: '#94a3b8', display: 'block', marginTop: 2, marginBottom: 3 }}>Bill #{bill.bill_number}</span>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.color }}>
-                      {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
-                    </span>
-                    {bill.passed_by_suspension && (
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F1F5F9', color: '#475569', marginLeft: 4 }}>
-                        Suspension
+          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
+            {debouncedSearch ? 'No bills match your search.' : 'No bills yet.'}
+          </div>
+        ) : (
+          <>
+            {bills.map((bill, i) => {
+              const st = STATUS_STYLES[bill.status] ?? STATUS_STYLES.tabled;
+              const date = bill.introduced_date ? new Date(bill.introduced_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+              const sponsorRep = bill.primary_sponsor_id ? repMap.get(bill.primary_sponsor_id) : null;
+              const sponsorDisplay = sponsorRep
+                ? `${sponsorRep.first_name} ${sponsorRep.last_name}`
+                : bill.primary_sponsor ?? null;
+              const cosponsorCount = billSponsorCounts.get(bill.bill_id) ?? 0;
+              return (
+                <div key={bill.bill_id} style={{ padding: '11px 14px', borderBottom: i < bills.length - 1 || hasMore ? '1px solid #F4F6F0' : 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#0f1724', lineHeight: 1.35, marginBottom: 4, wordBreak: 'break-word' }}>{bill.title}</p>
+                    {bill.bill_number && (
+                      <span style={{ fontSize: 10, color: '#94a3b8', display: 'block', marginTop: 2, marginBottom: 3 }}>Bill #{bill.bill_number}</span>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.color }}>
+                        {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                      </span>
+                      {bill.passed_by_suspension && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F1F5F9', color: '#475569', marginLeft: 4 }}>
+                          Suspension
+                        </span>
+                      )}
+                      {date && <span style={{ fontSize: 10, color: '#94a3b8' }}>{date}</span>}
+                    </div>
+                    {sponsorDisplay && (
+                      <span style={{ fontSize: 10, color: '#64748b', marginTop: 3, display: 'block' }}>
+                        {sponsorDisplay}{cosponsorCount > 0 ? ` +${cosponsorCount} co-sponsor${cosponsorCount !== 1 ? 's' : ''}` : ''}
                       </span>
                     )}
-                    {date && <span style={{ fontSize: 10, color: '#94a3b8' }}>{date}</span>}
                   </div>
-                  {sponsorDisplay && (
-                    <span style={{ fontSize: 10, color: '#64748b', marginTop: 3, display: 'block' }}>
-                      {sponsorDisplay}{cosponsorCount > 0 ? ` +${cosponsorCount} co-sponsor${cosponsorCount !== 1 ? 's' : ''}` : ''}
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                    <button onClick={() => openEdit(bill)}
+                      style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#1B4332', minHeight: 'unset' }}>
+                      <i className="fa-solid fa-pen" style={{ fontSize: 14 }} />
+                    </button>
+                    <button onClick={() => setDeleteTarget(bill)}
+                      style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#F0455A', minHeight: 'unset' }}>
+                      <i className="fa-solid fa-trash" style={{ fontSize: 14 }} />
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                  <button onClick={() => openEdit(bill)}
-                    style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#1B4332', minHeight: 'unset' }}>
-                    <i className="fa-solid fa-pen" style={{ fontSize: 14 }} />
-                  </button>
-                  <button onClick={() => setDeleteTarget(bill)}
-                    style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#F0455A', minHeight: 'unset' }}>
-                    <i className="fa-solid fa-trash" style={{ fontSize: 14 }} />
-                  </button>
-                </div>
+              );
+            })}
+            {hasMore && (
+              <div style={{ padding: 12, textAlign: 'center' }}>
+                <button onClick={loadMore} disabled={loadingMore}
+                  style={{ background: 'white', color: '#1B4332', border: '1px solid #E2E8E4', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {loadingMore ? 'Loading…' : 'Load more'}
+                </button>
               </div>
-            );
-          });
-        })()}
+            )}
+          </>
+        )}
       </div>
     </>
   );
