@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
 import { getCache, setCache, TTL } from '../lib/cache';
 import { BillCard } from '../components/BillCard';
+import { formatNumber } from '../lib/formatNumber';
 import type { Database } from '../lib/types';
 
 const PAGE_SIZE = 20;
@@ -263,13 +264,13 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
-              {unvotedActiveCount} bill{unvotedActiveCount !== 1 ? 's' : ''} waiting for your vote
+              {formatNumber(unvotedActiveCount)} bill{unvotedActiveCount !== 1 ? 's' : ''} waiting for your vote
             </span>
             <span style={{
               background: 'rgba(255,255,255,0.2)', color: 'white',
               fontSize: 13, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
             }}>
-              {unvotedActiveCount}
+              {formatNumber(unvotedActiveCount)}
             </span>
           </div>
         ) : (
@@ -338,7 +339,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
             {/* Right */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                {totalCount ?? bills.length} {(totalCount ?? bills.length) === 1 ? 'bill' : 'bills'}
+                {formatNumber(totalCount ?? bills.length)} {(totalCount ?? bills.length) === 1 ? 'bill' : 'bills'}
               </span>
               <i
                 className="fa-solid fa-chevron-down"

@@ -4,6 +4,7 @@ import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
 import { extractMsg, FormField, Spinner, ConfirmModal, inputStyle } from './AdminShared';
 import { BILL_TOPICS } from '../../lib/billUtils';
+import { formatNumber } from '../../lib/formatNumber';
 import type { Bill, Representative, LegislativeBody } from '../../lib/types';
 
 type BillFormState = {
@@ -459,7 +460,7 @@ export function BillsTab({
                     </div>
                     {sponsorDisplay && (
                       <span style={{ fontSize: 10, color: '#64748b', marginTop: 3, display: 'block' }}>
-                        {sponsorDisplay}{cosponsorCount > 0 ? ` +${cosponsorCount} co-sponsor${cosponsorCount !== 1 ? 's' : ''}` : ''}
+                        {sponsorDisplay}{cosponsorCount > 0 ? ` +${formatNumber(cosponsorCount)} co-sponsor${cosponsorCount !== 1 ? 's' : ''}` : ''}
                       </span>
                     )}
                   </div>

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
 import { extractMsg, FormField, inputStyle } from './AdminShared';
+import { formatNumber } from '../../lib/formatNumber';
 import type { VotingBlock } from '../../lib/types';
 
 type BlockForm = { name: string; visibility: 'public' | 'private'; firstAdminUsername: string };
@@ -306,7 +307,7 @@ export function VotingBlocksTab({ onToast }: { onToast: (m: string) => void }) {
                   style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', minHeight: 'unset' }}
                 >
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#0f1724' }}>{b.name}</span>
-                  <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 8 }}>{count} member{count === 1 ? '' : 's'}</span>
+                  <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 8 }}>{formatNumber(count)} member{count === 1 ? '' : 's'}</span>
                   <div style={{ display: 'flex', gap: 4, marginTop: 3 }}>
                     <span style={{
                       fontSize: 9, fontWeight: 700, textTransform: 'uppercase', padding: '1px 6px', borderRadius: 8,

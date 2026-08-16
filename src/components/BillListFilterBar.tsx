@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatNumber } from '../lib/formatNumber';
 
 type FilterOption = { label: string; value: string; activeColor?: { bg: string; color: string; border: string } };
 
@@ -80,7 +81,7 @@ export function BillListFilterBar({
         {/* Right: count + divider + icon */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 12, color: '#94a3b8' }}>
-            {resultCount} {resultCount === 1 ? 'bill' : 'bills'}
+            {formatNumber(resultCount)} {resultCount === 1 ? 'bill' : 'bills'}
           </span>
           <div style={{ width: 1, height: 14, background: '#E2E8E4' }} />
           {!allDefaults && (

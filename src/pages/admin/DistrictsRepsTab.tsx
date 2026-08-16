@@ -6,10 +6,10 @@ import { extractMsg, FormField, inputStyle } from './AdminShared';
 import type { District, Representative, LegislativeBody } from '../../lib/types';
 
 type DistrictForm = { name: string; district_number: string; legislative_body_id: string };
-type RepForm = { first_name: string; last_name: string; title: string; party: string; bio: string; district_id: string; legislative_body_id: string };
+type RepForm = { first_name: string; last_name: string; title: string; party: string; bio: string; photo_url: string; district_id: string; legislative_body_id: string };
 
 const EMPTY_DISTRICT_FORM: DistrictForm = { name: '', district_number: '', legislative_body_id: '' };
-const EMPTY_REP_FORM: RepForm = { first_name: '', last_name: '', title: '', party: '', bio: '', district_id: '', legislative_body_id: '' };
+const EMPTY_REP_FORM: RepForm = { first_name: '', last_name: '', title: '', party: '', bio: '', photo_url: '', district_id: '', legislative_body_id: '' };
 
 export function DistrictsRepsTab({
   bodies,
@@ -101,7 +101,7 @@ export function DistrictsRepsTab({
     setEditingRepId(r.representative_id);
     setRepForm({
       first_name: r.first_name, last_name: r.last_name, title: r.title ?? '', party: r.party ?? '',
-      bio: r.bio ?? '', district_id: r.district_id ?? '', legislative_body_id: r.legislative_body_id ?? '',
+      bio: r.bio ?? '', photo_url: r.photo_url ?? '', district_id: r.district_id ?? '', legislative_body_id: r.legislative_body_id ?? '',
     });
     setRepError(null);
     setRepFormOpen(true);
@@ -117,7 +117,7 @@ export function DistrictsRepsTab({
     try {
       const payload = {
         first_name: repForm.first_name.trim(), last_name: repForm.last_name.trim(), title: repForm.title.trim(),
-        party: repForm.party.trim(), bio: repForm.bio.trim() || null,
+        party: repForm.party.trim(), bio: repForm.bio.trim() || null, photo_url: repForm.photo_url.trim() || null,
         district_id: repForm.district_id || null, legislative_body_id: repForm.legislative_body_id,
       };
       if (editingRepId) {
@@ -243,6 +243,18 @@ export function DistrictsRepsTab({
               </div>
               <FormField label="Bio (optional)">
                 <textarea value={repForm.bio} onChange={(e) => setRepForm((f) => ({ ...f, bio: e.target.value }))} rows={3} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Bio…" />
+              </FormField>
+              <FormField label="Photo URL (optional)">
+                <input value={repForm.photo_url} onChange={(e) => setRepForm((f) => ({ ...f, photo_url: e.target.value }))} style={inputStyle} placeholder="https://…" />
+                {repForm.photo_url.trim() && (
+                  <img
+                    src={repForm.photo_url.trim()}
+                    alt="Photo preview"
+                    style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', marginTop: 8, border: '1px solid #E2E8E4' }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                    onLoad={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'visible'; }}
+                  />
+                )}
               </FormField>
               <FormField label="District">
                 <select value={repForm.district_id} onChange={(e) => setRepForm((f) => ({ ...f, district_id: e.target.value }))} style={inputStyle}>

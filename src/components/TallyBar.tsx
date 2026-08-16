@@ -1,3 +1,5 @@
+import { formatNumber } from '../lib/formatNumber';
+
 type TallyBarProps = {
   supportCount: number;
   opposeCount: number;
@@ -36,7 +38,7 @@ export function TallyBar({ supportCount, opposeCount, totalVotes, animate = fals
       {/* Labels */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-        <span style={{ fontSize: 10, color: '#94a3b8' }}>{totalVotes} votes cast</span>
+        <span style={{ fontSize: 10, color: '#94a3b8' }}>{formatNumber(totalVotes)} votes cast</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
       </div>
     </div>

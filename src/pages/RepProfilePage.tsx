@@ -6,6 +6,7 @@ import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import { BillListFilterBar } from '../components/BillListFilterBar';
 import { BillHistoryRow, PassedSponsoredBillRow } from '../components/RepBillRows';
+import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 import type { Representative, Bill, RepVote } from '../lib/types';
 
@@ -290,6 +291,8 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
   const initials = rep
     ? `${rep.first_name.charAt(0)}${rep.last_name.charAt(0)}`.toUpperCase()
     : '';
+  const [photoFailed, setPhotoFailed] = useState(false);
+  useEffect(() => { setPhotoFailed(false); }, [repId]);
 
   if (loading) {
     return (
@@ -349,15 +352,28 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
           {/* ── SECTION 1: HEADER CARD ── */}
           <div style={{ background: '#1B4332', borderRadius: 12, padding: '16px 14px 14px' }}>
             {/* Avatar */}
-            <div style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: '#F5A623', color: '#7A4F00',
-              fontSize: 16, fontWeight: 900,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 10,
-            }}>
-              {initials}
-            </div>
+            {rep.photo_url && !photoFailed ? (
+              <img
+                src={rep.photo_url}
+                alt={`${rep.first_name} ${rep.last_name}`}
+                onError={() => setPhotoFailed(true)}
+                style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  objectFit: 'cover',
+                  marginBottom: 10,
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: '#F5A623', color: '#7A4F00',
+                fontSize: 16, fontWeight: 900,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 10,
+              }}>
+                {initials}
+              </div>
+            )}
 
             {/* Name */}
             <p style={{ fontSize: 16, fontWeight: 900, color: 'white', lineHeight: 1.2, marginBottom: 4, display: 'block' }}>
@@ -480,7 +496,7 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
                         borderRadius: 8, padding: '8px 10px', textAlign: 'center',
                       }}>
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#0f1724', lineHeight: 1 }}>
-                          {myAlignmentScore.total}
+                          {formatNumber(myAlignmentScore.total)}
                         </span>
                         <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94a3b8', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           Bills Compared
@@ -491,7 +507,7 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
                         borderRadius: 8, padding: '8px 10px', textAlign: 'center',
                       }}>
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#0e6b4a', lineHeight: 1 }}>
-                          {myAlignmentScore.matched}
+                          {formatNumber(myAlignmentScore.matched)}
                         </span>
                         <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#0e6b4a', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
                           Aligned
@@ -502,7 +518,7 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
                         borderRadius: 8, padding: '8px 10px', textAlign: 'center',
                       }}>
                         <span style={{ display: 'block', fontSize: 16, fontWeight: 900, color: '#c0392b', lineHeight: 1 }}>
-                          {myAlignmentScore.mismatched}
+                          {formatNumber(myAlignmentScore.mismatched)}
                         </span>
                         <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#c0392b', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
                           Not Aligned
@@ -594,7 +610,7 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
                           padding: '2px 7px', borderRadius: 10,
                           marginLeft: 6,
                         }}>
-                          {allPassedSponsored.length} passed
+                          {formatNumber(allPassedSponsored.length)} passed
                         </span>
                       )}
                     </div>
@@ -869,7 +885,7 @@ function ScoreDisplay({
         </div>
       </div>
       <p style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginTop: 4, marginBottom: 6 }}>
-        Based on {score.qualifying} qualifying bill{score.qualifying !== 1 ? 's' : ''}
+        Based on {formatNumber(score.qualifying)} qualifying bill{score.qualifying !== 1 ? 's' : ''}
       </p>
       {suspensionCount !== undefined && suspensionCount > 0 && (
         <p style={{
@@ -880,7 +896,7 @@ function ScoreDisplay({
           marginTop: 4,
           marginBottom: 0,
         }}>
-          {suspensionCount} bill{suspensionCount !== 1 ? 's' : ''} in this record passed by suspension of rules — individual votes were not recorded for those bills.
+          {formatNumber(suspensionCount)} bill{suspensionCount !== 1 ? 's' : ''} in this record passed by suspension of rules — individual votes were not recorded for those bills.
         </p>
       )}
       <p style={{ display: 'block', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginTop: suspensionCount !== undefined && suspensionCount > 0 ? 4 : 0, marginBottom: 0 }}>

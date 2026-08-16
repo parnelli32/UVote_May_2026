@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
 import { bustCache } from '../lib/cache';
+import { formatNumber } from '../lib/formatNumber';
 import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
@@ -462,7 +463,7 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
               {/* Tally labels */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{tally.total_votes} votes cast</span>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{formatNumber(tally.total_votes)} votes cast</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
               </div>
             </div>
@@ -624,7 +625,7 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
                         background: bp.vote_position === 'support' ? '#E6F5EE' : '#FEF0EF',
                         color: bp.vote_position === 'support' ? '#0e6b4a' : '#c0392b',
                       }}>
-                        {bp.vote_position === 'support' ? supportPct : opposePct}% {bp.vote_position === 'support' ? 'Support' : 'Oppose'} · {bp.total_votes} votes
+                        {bp.vote_position === 'support' ? supportPct : opposePct}% {bp.vote_position === 'support' ? 'Support' : 'Oppose'} · {formatNumber(bp.total_votes)} votes
                       </span>
                     )}
                   </button>

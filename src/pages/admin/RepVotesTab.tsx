@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
 import { extractMsg, FormField, Spinner, inputStyle } from './AdminShared';
+import { formatNumber } from '../../lib/formatNumber';
 import type { Bill, Representative, RepVote } from '../../lib/types';
 
 type BulkVoteFormState = {
@@ -85,7 +86,7 @@ function BulkVoteEntry({
       setResult({ inserted: toInsert.length, skipped });
       setForm(EMPTY_BULK_FORM);
       onRefresh();
-      if (toInsert.length > 0) onToast(`${toInsert.length} rep vote${toInsert.length !== 1 ? 's' : ''} inserted.`);
+      if (toInsert.length > 0) onToast(`${formatNumber(toInsert.length)} rep vote${toInsert.length !== 1 ? 's' : ''} inserted.`);
     } catch (err) {
       const msg = extractMsg(err);
       await logError({ action: 'admin_bulk_vote_insert', userId: user?.id, errorMessage: msg });

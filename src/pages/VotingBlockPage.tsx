@@ -4,6 +4,7 @@ import { logError } from '../lib/errorLogger';
 import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
+import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 import type { Bill, VotingBlockPublic, VotingBlockGeoBreakdown, VotingBlockBillPosition } from '../lib/types';
 
@@ -307,7 +308,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
           <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8' }}>Membership</span>
         </div>
         <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 24, fontWeight: 900, color: '#0f1724' }}>{block.member_count}</span>
+          <span style={{ fontSize: 24, fontWeight: 900, color: '#0f1724' }}>{formatNumber(block.member_count)}</span>
           <span style={{ fontSize: 13, color: '#64748b' }}>member{block.member_count === 1 ? '' : 's'}</span>
         </div>
         {geoBreakdown.length > 0 && (
@@ -317,7 +318,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
                 <span style={{ color: '#374151' }}>
                   {g.district_name ?? 'Unassigned district'}{g.legislative_body_name ? ` · ${g.legislative_body_name}` : ''}
                 </span>
-                <span style={{ fontWeight: 700, color: '#1B4332' }}>{g.member_count}</span>
+                <span style={{ fontWeight: 700, color: '#1B4332' }}>{formatNumber(g.member_count)}</span>
               </div>
             ))}
           </div>
@@ -356,7 +357,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
                 </span>
                 {p.vote_position === 'tied' ? (
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', background: '#F1F5F9', padding: '3px 8px', borderRadius: 6 }}>
-                    Evenly split · {p.total_votes} votes
+                    Evenly split · {formatNumber(p.total_votes)} votes
                   </span>
                 ) : (
                   <>
@@ -366,7 +367,7 @@ export function VotingBlockPage({ blockId, onBack, onNavigateToBill, onNavigateT
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{p.total_votes} votes</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{formatNumber(p.total_votes)} votes</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
                     </div>
                   </>
