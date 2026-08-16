@@ -88,10 +88,11 @@ export function getSummaryPreview(
 ): string {
   if (shortDescription) return shortDescription.trim();
   if (!summary) return '';
+  const { core } = splitSummaryCoreAndDetail(summary);
   const sections =
-    parseSummaryIntoSections(summary);
+    parseSummaryIntoSections(core);
   if (sections.length === 0) {
-    return summary.trim();
+    return core.trim();
   }
   const text = sections[0].text;
   const sentences =
@@ -106,9 +107,42 @@ export function getSummaryPreview(
     .trim();
 }
 
+/** Marker separating the mandatory four-part core from optional expandable
+ *  detail within `summary`. Used only for bills complex enough to need
+ *  supplementary content beyond the ~120-180 word core (itemized
+ *  appropriations lines, extended sourcing/attribution, additional context)
+ *  — most bills never include it, and `splitSummaryCoreAndDetail` treats an
+ *  absent marker as "the whole string is core, no detail," so every summary
+ *  generated before this convention existed keeps rendering unchanged.
+ *  Must be split off *before* `parseSummaryIntoSections` runs: that parser's
+ *  final section capture is non-greedy with no terminator other than
+ *  end-of-string, so unsplit detail text would otherwise be silently
+ *  absorbed into Part 4.
+ */
+export const SUMMARY_DETAIL_MARKER = '[[READ MORE]]';
+
+export type SummaryCoreAndDetail = {
+  core: string;
+  detail: string | null;
+};
+
+export function splitSummaryCoreAndDetail(
+  summary: string | null | undefined,
+): SummaryCoreAndDetail {
+  if (!summary) return { core: '', detail: null };
+  const idx = summary.indexOf(SUMMARY_DETAIL_MARKER);
+  if (idx === -1) return { core: summary, detail: null };
+  const core = summary.slice(0, idx).trim();
+  const detail = summary.slice(idx + SUMMARY_DETAIL_MARKER.length).trim();
+  return { core, detail: detail || null };
+}
+
 /** Parse the summary into up to 4 named sections.
  *  Sections are split on lines that look like "1.", "2.", numbered headings,
  *  or the exact section labels. Falls back to single block under section 1.
+ *  Callers with a full `summary` string (which may carry an expandable-detail
+ *  suffix) must call `splitSummaryCoreAndDetail` first and pass its `core` —
+ *  this function does not do that split itself.
  */
 export type SummarySection = {
   label: string;
