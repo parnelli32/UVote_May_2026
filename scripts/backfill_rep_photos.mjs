@@ -26,6 +26,22 @@
 // splittable on its own for multi-word first names ("Marc S. Anderson"), so
 // matching against `representatives` uses the img's alt text / thumb-info-inner
 // span instead, which is the member's plain "First [Middle] Last" display name.
+//
+// Matching, PA House/Senate: primarily by chamber + district number, not name.
+// palegis.us frequently lists a member's preferred/informal first name
+// ("Rob W. Kauffman", "Brad Roae", "Bud Cook") while representatives.first_name
+// holds the formal name ("Robert", "Bradley", "Donald"), which made name-only
+// matching silently miss ~28% of House and ~16% of Senate rows across two
+// production runs even though the run itself reported success. District
+// numbers are unambiguous and both sides already have them, so each scraped
+// member's data-district (zero-padded 3-digit string, e.g. "019") is compared
+// against representatives.district_id -> districts.district_number (a plain,
+// non-zero-padded numeric string live, e.g. "23") after parseInt(x, 10)
+// normalization on both sides. The original name-based match (matchesRep)
+// stays as a fallback for any rep with no resolvable district number, and as
+// a sanity cross-check that logs a warning (without blocking the match) when
+// a district match's name looks nothing like the scraped name, in case that
+// signals a genuine data error rather than an informal-name mismatch.
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -121,6 +137,14 @@ function matchesRep(rep, displayName) {
   return scrapedTokens[0] === first && scrapedTokens[scrapedTokens.length - 1] === last;
 }
 
+// A stored first_name that's just a bare initial (e.g. "V.") is very likely a
+// pre-existing data-entry defect in `representatives`, not something this
+// script can fix — flagged as a NOTE in the run output for a human to look at
+// separately, never auto-corrected here.
+function looksLikeInitialOnly(name) {
+  return /^[A-Z]\.?$/.test(name.trim());
+}
+
 async function uploadPhoto(sourceUrl, storagePath) {
   const res = await fetch(sourceUrl, { headers: { 'User-Agent': 'Mozilla/5.0 (UVote civic-tech photo backfill; contact via uvotephilly.com)' } });
   if (!res.ok) throw new Error(`Failed to download ${sourceUrl}: HTTP ${res.status}`);
@@ -138,9 +162,22 @@ async function uploadPhoto(sourceUrl, storagePath) {
 async function run() {
   const { data: reps, error: repsError } = await supabase
     .from('representatives')
-    .select('representative_id, first_name, last_name, legislative_body_id')
+    .select('representative_id, first_name, last_name, legislative_body_id, district_id')
     .in('legislative_body_id', [PA_HOUSE_BODY_ID, PA_SENATE_BODY_ID]);
   if (repsError) throw repsError;
+
+  const { data: districts, error: districtsError } = await supabase
+    .from('districts')
+    .select('district_id, district_number')
+    .in('legislative_body_id', [PA_HOUSE_BODY_ID, PA_SENATE_BODY_ID]);
+  if (districtsError) throw districtsError;
+
+  const districtNumberById = new Map(districts.map((d) => [d.district_id, d.district_number]));
+  for (const rep of reps) {
+    const rawNumber = rep.district_id ? districtNumberById.get(rep.district_id) : null;
+    const parsed = rawNumber != null ? parseInt(rawNumber, 10) : NaN;
+    rep.districtNumber = Number.isFinite(parsed) ? parsed : null;
+  }
 
   const unmatchedScraped = [];
   const unmatchedReps = new Set(reps.map((r) => r.representative_id));
@@ -151,10 +188,29 @@ async function run() {
     console.log(`${chamber.label}: found ${scrapedMembers.length} member cards`);
 
     for (const scraped of scrapedMembers) {
-      const rep = reps.find((r) => r.legislative_body_id === chamber.bodyId && matchesRep(r, scraped.displayName));
+      const scrapedDistrictNumber = parseInt(scraped.district, 10);
+      let rep = Number.isFinite(scrapedDistrictNumber)
+        ? reps.find((r) => r.legislative_body_id === chamber.bodyId && r.districtNumber === scrapedDistrictNumber)
+        : null;
+
+      if (rep && !matchesRep(rep, scraped.displayName)) {
+        console.warn(
+          `  WARN  ${chamber.label} district ${scraped.district}: matched by district to "${rep.first_name} ${rep.last_name}" but scraped name "${scraped.displayName}" doesn't resemble it — verify manually`
+        );
+      }
+
+      if (!rep) {
+        rep = reps.find((r) => r.legislative_body_id === chamber.bodyId && matchesRep(r, scraped.displayName));
+      }
+
       if (!rep) {
         unmatchedScraped.push(`${chamber.label}: "${scraped.displayName}" (district ${scraped.district}, palegis member_id ${scraped.memberId})`);
         continue;
+      }
+      if (looksLikeInitialOnly(rep.first_name)) {
+        console.warn(
+          `  NOTE  ${rep.first_name} ${rep.last_name} (${rep.representative_id}) has an initial-only first_name in representatives — likely a pre-existing data-entry issue, not corrected by this script`
+        );
       }
       unmatchedReps.delete(rep.representative_id);
 
