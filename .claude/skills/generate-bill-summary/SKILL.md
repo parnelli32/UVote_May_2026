@@ -1,11 +1,11 @@
 ---
 name: generate-bill-summary
-description: Use this skill whenever a UVote bill (Philadelphia City Council or PA House/Senate) needs a citizen-facing summary/bill_text/topic generated or regenerated from its real source text — the reusable replacement for hand-writing a bill summary in an ad hoc Claude Code chat. Always consult this skill before drafting a bill's `summary` field by hand, and before writing any SQL that touches `bills.summary`/`bill_text`/`topic`. Never generates a summary from a bill's title alone — if real extracted source text isn't available, the correct behavior is to skip the bill and flag it for a human, not guess.
+description: Use this skill whenever a UVote bill (Philadelphia City Council or PA House/Senate) needs a citizen-facing summary/bill_text/topic/short_description generated or regenerated from its real source text — the reusable replacement for hand-writing a bill summary in an ad hoc Claude Code chat. Always consult this skill before drafting a bill's `summary` field by hand, and before writing any SQL that touches `bills.summary`/`bill_text`/`topic`/`short_description`. Never generates a summary from a bill's title alone — if real extracted source text isn't available, the correct behavior is to skip the bill and flag it for a human, not guess.
 ---
 
 # UVote bill summary generation
 
-This skill produces a citizen-facing bill `summary` (the four-part format), a plain-language `bill_text` restatement, an explicit `topic`, and a ready-to-run SQL upsert block for one bill — the same output a human currently produces by hand in a Claude Code chat (see `current-manual-process.md`), just unattended and reusable across Philadelphia City Council and PA House/Senate.
+This skill produces a citizen-facing bill `summary` (the four-part format), a plain-language `bill_text` restatement, an explicit `topic`, a one-sentence `short_description`, and a ready-to-run SQL upsert block for one bill — the same output a human currently produces by hand in a Claude Code chat (see `current-manual-process.md`), just unattended and reusable across Philadelphia City Council and PA House/Senate.
 
 **The skill never writes to the database itself.** It emits SQL for a human to review and run through the Supabase Dashboard SQL editor, matching this project's existing "migrations are always applied by hand" convention (see `CLAUDE.md`). This is deliberate and indefinite (C1 write-back mode), not a placeholder — see "Why this matters" below.
 
@@ -49,7 +49,7 @@ This is the actual review bar — copy it into every self-report verbatim so a h
 The caller (a human, a scheduled dispatch, or a firstmate crewmate task) provides:
 
 - A bill identifier: `legislative_body_id` + `bill_number`, or an existing `bill_id` UUID.
-- Available source material: for Philadelphia City Council, a `phila.legistar.com` bill PDF URL (search `https://phila.legistar.com/Legislation.aspx` by bill number if not already known — see "Extraction" below for the real, verified path); for PA House/Senate, a LegiScan `bill_id` (numeric) to call `getBill`/`getBillText` against.
+- Available source material: for Philadelphia City Council, a `phila.legistar.com` bill PDF URL (search `https://phila.legistar.com/Legislation.aspx` by bill number if not already known — see "Extraction" below for the real, verified path); for PA House/Senate, a LegiScan `bill_id` (numeric) to call `getBill` against, which in turn drives `getBillText`/`getAmendment`/`getSupplement` per Step 2.
 
 The skill resolves its **own** enrichment tier and content axes from bill metadata during Steps 2–6 below — the caller does not need to pre-classify the bill.
 
@@ -73,9 +73,14 @@ Look up the bill by `bill_id` or `(legislative_body_id, bill_number)` via a read
 
 **Philadelphia City Council**: search `https://phila.legistar.com/Legislation.aspx` by bill number (this is a dynamic ASP.NET page — a scripted GET request against it will not work; drive it with a real browser session, e.g. `chrome-devtools-axi`, fill the search box, submit, then follow the result's `LegislationDetail.aspx` link to find the actual bill PDF under `View.ashx?M=F&ID=...`). For a bill with status `passed`, prefer the **CertifiedCopy** attachment over the original introduced version if both exist — it carries the certification page (Council President + Mayor sign-off with dates), which both confirms `passed` status and gives you the real passage date.
 
-**PA House/Senate**: call LegiScan's `getBill` (`https://api.legiscan.com/?key=$LEGISCAN_API_KEY&op=getBill&id=<bill_id>`) to get the bill's metadata and its `texts` array (each entry has a `doc_id` and `mime`). Call `getBillText` (`op=getBillText&id=<doc_id>`) for the most recent entry to get the base64-encoded document and its `mime` type. **`LEGISCAN_API_KEY` must be present in the environment** — if it isn't, this is an extraction failure per the hard grounding requirement: stop and flag for a human, do not proceed on metadata alone.
+**PA House/Senate**: call LegiScan's `getBill` (`https://api.legiscan.com/?key=$LEGISCAN_API_KEY&op=getBill&id=<bill_id>`) to get the bill's metadata, its `texts` array (each entry has a `doc_id`, `type`, and `mime`), and its `supplements` array (each entry has a `supplement_id`, `type`, and `mime`). **`LEGISCAN_API_KEY` must be present in the environment** — if it isn't, this is an extraction failure per the hard grounding requirement: stop and flag for a human, do not proceed on metadata alone.
+
+- **Bill text**: from `texts[]`, prefer the most recent **Amended** entry over **Introduced** when both exist — an amended bill's operative text has changed since introduction, and grounding the summary in a stale as-introduced version would misdescribe what the bill currently does. Call `getBillText` (`op=getBillText&id=<doc_id>`) for the chosen entry. If LegiScan is tracking the amendment as a distinct document rather than a full replacement text, call `getAmendment` (`op=getAmendment&id=<amendment_id>`) instead. Either way, the fetched document goes through the same base64+MIME extraction (Step 3) and sanitization (Step 4) as any other bill text.
+- **Fiscal/impact supplement**: from `supplements[]`, check for a fiscal-relevant `type` — **Fiscal Note**, **Analysis**, **Fiscal Note/Analysis**, **Local Mandate**, or **Corrections Impact**. (LegiScan also returns non-fiscal supplement types — Vote Image, Veto Letter, Miscellaneous — which are out of scope here.) When a fiscal-relevant supplement exists, call `getSupplement` (`op=getSupplement&id=<supplement_id>`) to fetch it — the same base64+MIME document pattern as `getBillText`, so it runs through the same extraction (Step 3) and sanitization (Step 4) pipeline. It then becomes the **primary source for Part 3/4 stakes claims** in Step 7 (cost estimates, who bears them, scale) — prefer it over general web research for those specific claims, since an official fiscal note is a primary source, not an inference (a real strengthening of Criterion 4). Per the hard contract's restate-don't-store rule, never store the raw supplement document — fold its figures into the summary's prose with inline attribution (e.g. "the official fiscal note estimates...") exactly like `bill_text`'s existing restatement convention.
 
 ### Step 3 — Extract text, dispatched on `mime`
+
+This dispatch applies uniformly to bill text, amendment documents, and fiscal/impact supplements — LegiScan returns all three as the same base64-encoded-document-plus-`mime` shape, just fetched via different operations (`getBillText`/`getAmendment`/`getSupplement`, see Step 2).
 
 - **`application/pdf`** (the common case for both Council and LegiScan): decode/save to a temp file and read it with the `Read` tool directly — it natively reads PDFs, including multi-page documents. No bespoke PDF library needed; this was verified directly against real bill PDFs (see the skill's test log).
 - **`application/rtf`** (LegiScan sometimes returns this for amendments): **do not feed raw RTF markup into the `Read` tool or a generation prompt** — it's control-word/group markup, not prose, and `Read`'s PDF handling doesn't apply to it. Use a proper RTF extractor: check for the `striprtf` Python package (`python3 -c "import striprtf"`); if missing, install it (`pip3 install --user striprtf`) and extract via `from striprtf.striprtf import rtf_to_text`. If `striprtf` can't be installed or errors on the document, that is an extraction failure — **stop and flag for a human**, do not hand-roll a fragile regex-based RTF stripper as a substitute (a naive stripper can silently corrupt hex-escaped/Unicode-escaped content in ways that are worse than failing loudly).
@@ -99,7 +104,7 @@ Using only what's already in hand (no web research yet), set a starting enrichme
 - **Procedural metadata already fetched**: for PA, sponsor count and `votes`/floor-vote presence from `getBill`'s response; for Council, the `passed_by_suspension` field (already a real, populated column — see `BillDetailPage.tsx`/`BillsTab.tsx`) and a title-pattern check for commemorative bills (`/designat|renam|proclaim|recogniz/i` against titles like "An Ordinance Designating May 21st as..." — a low-risk heuristic in the same spirit as `TOPIC_RULES`' existing keyword fallback, not a new permanent classification field).
 - **Output**: an initial Tier 1 (grounded in bill text + metadata only) vs. Tier 2 (adds researched enrichment) call, and an initial sense of whether this bill is short/simple or long/complex. This is a starting point Step 6 can override, not a final verdict — do not persist it as a new schema column (that repeats `category`'s exact mistake: a fixed classification, decided once, that goes stale).
 
-**Tier 2 trigger** (bills likely to actually have real coverage worth researching): recorded floor votes, budget/fiscal subject matter, or a topic match against `TOPIC_RULES`-style relevance keywords. Everything else stays Tier 1 — grounded in the bill's own text and structured metadata only, no web research. This is still strictly better than today's PA baseline (a bare one-line LegiScan description), and honest about what's achievable at PA's ~3,750-bill-per-session scale.
+**Tier 2 trigger** (bills likely to actually have real coverage worth researching): recorded floor votes, budget/fiscal subject matter, a topic match against `TOPIC_RULES`-style relevance keywords, or — regardless of what the keyword check finds — a real fiscal-relevant supplement attached (Step 2). A bill significant enough to get an official fiscal note is, by definition, worth the extra research effort, so this last trigger always upgrades to Tier 2 even when the keyword-based checks alone wouldn't have caught it. Everything else stays Tier 1 — grounded in the bill's own text and structured metadata only, no web research. This is still strictly better than today's PA baseline (a bare one-line LegiScan description), and honest about what's achievable at PA's ~3,750-bill-per-session scale.
 
 ### Step 6 — Resolve the content axes (finalizes what Step 5 started, before drafting Parts 3/4)
 
@@ -124,6 +129,10 @@ Grade 8 reading level, plain prose, no markdown/bullets/headers (the renderer di
 - **Jargon**: gloss any term of art inline the first time it's used. Real positive example already in production: "floor area ratio bonus... meaning they can build more square footage." Real negative example to avoid: using "Class II offense" or "Class III offense" with no dollar/consequence translation anywhere in the summary.
 - **Grounding vs. inference (Criterion 4)**: where a claim is the writer's researched inference rather than a bill-text fact, attribute it inline with different confidence than a bill-text fact ("suggesting potential alignment with..." / "a March 2026 report found...") rather than stating it with the same unhedged confidence as what the bill itself says.
 - **Length**: 120–180 words is the soft target for a typical bill (matches `BillsTab.tsx`'s own displayed guidance). A genuinely complex bill (e.g. multi-provision appropriations) may honestly need more — do not truncate and drop real mechanism/distributional information to hit the number (Criterion 9). A genuinely simple bill should be honestly short, not padded to look substantial.
+
+### Step 7.5 — Write `short_description`
+
+A short, plain-English, one-sentence description of what the bill does. No fixed word cap, but it must genuinely read as one sentence, not a second summary — if it needs more than a sentence to say what the bill does, that content belongs in Part 1 above, not here. This is distinct from Part 1 of the four-part `summary`: Part 1 is grounded in the full rubric/format contract (jargon glossed inline, multi-provision enumeration where needed, scored against Criterion 1 as part of a four-part structure); `short_description` is closer to what a citizen skimming a list of bills would want to read at a glance before tapping in for the full summary. Draft it fresh from the same grounded understanding of the bill used for Part 1 — do not derive it by truncating Part 1's text, since a mechanically cut-off sentence reads as clipped, not as a considered one-liner.
 
 ### Step 8 — Write `bill_text`
 
@@ -176,7 +185,7 @@ Rubric:
 
 ```sql
 INSERT INTO public.bills (
-  bill_number, title, summary, bill_text, topic,
+  bill_number, title, summary, bill_text, topic, short_description,
   introduced_date, status, primary_sponsor,
   legislative_body_id
 )
@@ -186,6 +195,7 @@ VALUES (
   '[summary — four-part inline plain prose]',
   '[bill_text — plain-language restatement, not raw extracted text]',
   '[one of BILL_TOPICS]',
+  '[short_description — one plain-English sentence]',
   '[introduced_date as YYYY-MM-DD, or NULL if unknown]',
   '[active | passed]',  -- see status note below
   '[Councilmember Name | Parker Administration | NULL]',
@@ -196,6 +206,7 @@ ON CONFLICT (legislative_body_id, bill_number) DO UPDATE SET
   summary = EXCLUDED.summary,
   bill_text = EXCLUDED.bill_text,
   topic = EXCLUDED.topic,
+  short_description = EXCLUDED.short_description,
   status = EXCLUDED.status,
   primary_sponsor = EXCLUDED.primary_sponsor;
   -- introduced_date is intentionally excluded from DO UPDATE SET when
@@ -209,6 +220,7 @@ ON CONFLICT (legislative_body_id, bill_number) DO UPDATE SET
 
 - **`ON CONFLICT (legislative_body_id, bill_number)` requires migration A7** (`deployment-package.md` Part A7, dropping the undocumented global `bills_bill_number_key` and adding `UNIQUE (legislative_body_id, bill_number)`). As of this skill's construction, A7's own deployment doc states production had not yet had it applied, and it is not present in this repo's `supabase/migrations/`. **Confirm A7 is applied before running this block** — if it isn't, Postgres will reject the statement with `no unique or exclusion constraint matching the ON CONFLICT specification`, which is the signal to apply A7 first, not to fall back to the old `bill_number`-only conflict target (that constraint is the wrong shape — see A7's own rationale).
 - **No `category` column appears above, deliberately** — see the hard contract.
+- **`short_description` requires migration `20260815130000_add_bills_short_description.sql`** to be applied before running this block, same as any other column this skill writes. It's nullable, so a bill upserted before that migration lands just gets `short_description = NULL` and `BillCard.tsx` falls back to its existing derived-preview behavior — this is a safe ordering mistake, not a destructive one, but confirm the column exists first to avoid a wasted regeneration.
 - **`district_id`** is a real, live column on `bills` (confirmed directly against production) but is essentially unused today (2 non-null rows across the entire table at time of writing) and is not addressed by any of the captain's four resolved decisions or by this skill's authorized scope. This skill deliberately does not assign it. If district-specific bill targeting becomes a priority, that's a separate scoped decision, not something to bolt onto this skill's output silently.
 - **Status and the review gate**: per the resolved human-review-transition decision, a generated-but-unreviewed bill must not reach a votable state. If this skill is run in a mode where the caller wants bills held out of the feed until reviewed, use a status other than `active` (or coordinate with the caller on the review-gate mechanism in use) until a human has scored the self-report above and approved the bill.
 

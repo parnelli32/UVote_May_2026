@@ -7,6 +7,7 @@ export type BillWithTally = {
   bill_id: string;
   title: string;
   summary: string | null;
+  short_description?: string | null;
   status: string;
   topic?: string | null;
   support_count: number;
@@ -26,7 +27,7 @@ export function BillCard({
   onTap: () => void;
 }) {
   const tag = getTopicTag(bill.title, bill.summary, bill.topic);
-  const preview = getSummaryPreview(bill.summary);
+  const preview = getSummaryPreview(bill.summary, bill.short_description);
   const voted = !!userVote;
   const isSupport = userVote?.vote === 'support';
 

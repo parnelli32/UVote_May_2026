@@ -84,7 +84,9 @@ export function getTopicTag(title: string, summary?: string | null, topicOverrid
 
 export function getSummaryPreview(
   summary: string | null | undefined,
+  shortDescription?: string | null,
 ): string {
+  if (shortDescription) return shortDescription.trim();
   if (!summary) return '';
   const sections =
     parseSummaryIntoSections(summary);
