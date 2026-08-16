@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { logError } from '../lib/errorLogger';
 import { useAuth } from '../context/AuthContext';
@@ -82,16 +82,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : null;
 
-  useEffect(() => {
-    if (!user) return;
-    loadStats();
-    loadHistory();
-    loadPriorities();
-    loadMyBlocks();
-    loadDemographics();
-  }, [user, profile?.district_id, currentBodyId]);
-
-  async function loadDemographics() {
+  const loadDemographics = useCallback(async () => {
     if (!user) return;
     setDemographicsLoading(true);
     try {
@@ -120,7 +111,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     } finally {
       setDemographicsLoading(false);
     }
-  }
+  }, [user]);
 
   async function handleSaveDemographics() {
     if (!user) return;
@@ -140,7 +131,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     }
   }
 
-  async function loadMyBlocks() {
+  const loadMyBlocks = useCallback(async () => {
     if (!user) return;
     setBlocksLoading(true);
     try {
@@ -168,7 +159,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     } finally {
       setBlocksLoading(false);
     }
-  }
+  }, [user]);
 
   async function handleJoinBlock() {
     if (!joinCode.trim() || !user) return;
@@ -191,7 +182,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     }
   }
 
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     if (!user) return;
     setStatsLoading(true);
     setStatsError(null);
@@ -249,9 +240,9 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     } finally {
       setStatsLoading(false);
     }
-  }
+  }, [user, currentBodyId, profile?.district_id]);
 
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     if (!user) return;
     setHistoryLoading(true);
     setHistoryError(null);
@@ -326,7 +317,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
     } finally {
       setHistoryLoading(false);
     }
-  }
+  }, [user, currentBodyId, profile?.district_id]);
 
   function extractMsg(err: unknown): string {
     return (err as { message?: string })?.message ??
@@ -334,7 +325,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
       String(err);
   }
 
-  async function loadPriorities() {
+  const loadPriorities = useCallback(async () => {
     if (!user) return;
     setPrioritiesLoading(true);
     const { data } = await supabase
@@ -344,7 +335,16 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
       .order('created_at', { ascending: false });
     setPriorities((data ?? []) as typeof priorities);
     setPrioritiesLoading(false);
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadStats();
+    loadHistory();
+    loadPriorities();
+    loadMyBlocks();
+    loadDemographics();
+  }, [user, loadStats, loadHistory, loadPriorities, loadMyBlocks, loadDemographics]);
 
   async function handleRemovePriority(priorityId: string) {
     setRemovingId(priorityId);

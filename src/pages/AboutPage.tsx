@@ -10,7 +10,6 @@ type NavProps = {
 };
 
 type AboutPageProps = {
-  onBack: () => void;
   onNavigateToHowItWorks?: () => void;
   onNavigateToAbout?: () => void;
   onNavigateToElectionCenter?: () => void;

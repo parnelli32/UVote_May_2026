@@ -199,7 +199,6 @@ function AppInner() {
       return (
         <BillDetailPage
           billId={route.billId}
-          onBack={navigateHome}
           onNavigateToRep={navigateToRep}
           onNavigateToVotingBlock={navigateToVotingBlock}
           onNavigateToHowItWorks={navigateToHowItWorks}
@@ -212,7 +211,6 @@ function AppInner() {
     return (
       <BillDetailPage
         billId={route.billId}
-        onBack={navigateHome}
         onNavigateToRep={navigateToRep}
         onNavigateToVotingBlock={navigateToVotingBlock}
         onNavigateToHowItWorks={navigateToHowItWorks}
@@ -227,7 +225,6 @@ function AppInner() {
     return (
       <RepProfilePage
         repId={route.repId}
-        onBack={navigateHome}
         onNavigateToBill={navigateToBill}
         onNavigateToRep={navigateToRep}
         onNavigateToHowItWorks={navigateToHowItWorks}
@@ -275,7 +272,6 @@ function AppInner() {
   if (route.name === 'about') {
     return (
       <AboutPage
-        onBack={user ? navigateHome : () => setAuthView('signin')}
         onNavigateToHowItWorks={navigateToHowItWorks}
         onNavigateToAbout={navigateToAbout}
         onNavigateToElectionCenter={navigateToElectionCenter}

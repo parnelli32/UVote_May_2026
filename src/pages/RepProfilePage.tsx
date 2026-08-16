@@ -18,7 +18,6 @@ type NavProps = {
 
 type RepProfilePageProps = {
   repId: string;
-  onBack: () => void;
   onNavigateToBill: (billId: string) => void;
   onNavigateToRep: (repId: string) => void;
   onNavigateToHowItWorks: () => void;
