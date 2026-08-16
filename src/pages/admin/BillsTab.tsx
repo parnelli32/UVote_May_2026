@@ -32,7 +32,16 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   passed: { bg: '#E6F5EE', color: '#0e6b4a' },
   failed: { bg: '#FEF0EF', color: '#c0392b' },
   tabled: { bg: '#F1F5F9', color: '#475569' },
+  pending_review: { bg: '#FEF6E7', color: '#8a5a00' },
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_review: 'Pending review',
+};
+
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -315,6 +324,7 @@ export function BillsTab({
                   <option value="passed">Passed</option>
                   <option value="failed">Failed</option>
                   <option value="tabled">Tabled</option>
+                  <option value="pending_review">Pending review</option>
                 </select>
               </FormField>
             </div>
@@ -449,7 +459,7 @@ export function BillsTab({
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: st.bg, color: st.color }}>
-                        {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
+                        {statusLabel(bill.status)}
                       </span>
                       {bill.passed_by_suspension && (
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 10, background: '#F1F5F9', color: '#475569', marginLeft: 4 }}>
