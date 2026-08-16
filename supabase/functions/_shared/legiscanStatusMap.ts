@@ -1,5 +1,9 @@
-// Table-driven mapping from LegiScan's numeric bill.status onto UVote's
-// bills.status enum (active | passed | failed | tabled — see BillCard.tsx).
+// Table-driven mapping from LegiScan's numeric bill.status onto the subset of
+// UVote's bills.status values a sync can produce (active | passed | failed |
+// tabled — see BillCard.tsx). bills.status also allows a fifth value,
+// pending_review, but that's exclusively the generate-bill-summary skill's
+// output for generated-but-unreviewed content (see that skill's SKILL.md) —
+// legiscan-sync never writes it, so it's deliberately absent from this map.
 //
 // LegiScan's documented top-level status codes (LegiScan API User Manual v1.91,
 // revision 20250317, "Bill Status Codes" table), cross-checked live (2026-08-09)
