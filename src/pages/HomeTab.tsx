@@ -128,6 +128,8 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
         if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
       } else if (statusFilter === 'passed') {
         q = q.eq('status', 'passed');
+      } else {
+        q = q.neq('status', 'pending_review');
       }
       const { count } = await q;
       if (!cancelled) setStatusOnlyCount(count ?? 0);
