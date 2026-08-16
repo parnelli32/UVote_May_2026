@@ -9,6 +9,7 @@ import { BillHistoryRow, PassedSponsoredBillRow } from '../components/RepBillRow
 import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 import type { Representative, Bill, RepVote } from '../lib/types';
+import { PHILLY_COUNCIL_BODY_ID } from '../data/legislativeGuides';
 
 type NavProps = {
   activeTab: NavTab;
@@ -73,6 +74,21 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
   const [sponsoredStatusFilter, setSponsoredStatusFilter] = useState<'all' | 'active' | 'passed'>('all');
 
   const isAtLarge = !rep?.district_id;
+
+  // city_constituent_score is actually platform-wide (rep vs. every UVote
+  // user, no district/body filter - see the RPC's own comment in
+  // 20260602020000_add_alignment_score_and_tally_functions.sql), so the
+  // score itself is valid for any body. Only the label/copy was ever
+  // Philadelphia-specific; branch it the same way isAtLarge already
+  // branches nearby rather than hardcoding "City" for every rep.
+  const isCouncilRep = rep?.legislative_body_id === PHILLY_COUNCIL_BODY_ID;
+  const platformScoreLabel = isCouncilRep ? 'City Constituent Score' : 'Statewide Constituent Score';
+  const platformScoreExplainer = isCouncilRep
+    ? "How often this representative's votes matched the majority position of all UVote users across Philadelphia."
+    : "How often this representative's votes matched the majority position of all UVote users across Pennsylvania.";
+  const platformScoreEmptyText = isCouncilRep
+    ? 'City Alignment Score will appear once more Philadelphia constituents have voted.'
+    : 'Statewide Alignment Score will appear once more Pennsylvania constituents have voted.';
 
   const loadRep = useCallback(async () => {
     try {
@@ -443,15 +459,15 @@ export function RepProfilePage({ repId, onNavigateToBill, onNavigateToRep, onNav
                 display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
                 letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8,
               }}>
-                {isAtLarge ? 'At-Large Seat Alignment' : 'City Constituent Score'}
+                {isAtLarge ? 'At-Large Seat Alignment' : platformScoreLabel}
               </span>
               {scoresLoading ? (
                 <ScoreLoading />
               ) : cityScore ? (
-                <ScoreDisplay score={cityScore} size={isAtLarge ? 'large' : 'small'} explainer="How often this representative's votes matched the majority position of all UVote users across Philadelphia." />
+                <ScoreDisplay score={cityScore} size={isAtLarge ? 'large' : 'small'} explainer={platformScoreExplainer} />
               ) : (
                 <p style={{ background: '#F4F6F0', border: '1px solid #E2E8E4', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-                  City Alignment Score will appear once more Philadelphia constituents have voted.
+                  {platformScoreEmptyText}
                 </p>
               )}
             </div>
