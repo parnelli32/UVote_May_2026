@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
 import { extractMsg, Spinner } from './AdminShared';
+import { formatNumber } from '../../lib/formatNumber';
 import type { ErrorLog } from '../../lib/types';
 
 export function ErrorLogsTab({ onStatsChange }: { onStatsChange: () => void }) {
@@ -56,7 +57,7 @@ export function ErrorLogsTab({ onStatsChange }: { onStatsChange: () => void }) {
         color: unresolvedCount > 0 ? '#c0392b' : '#0e6b4a',
         fontSize: 12, fontWeight: 700,
       }}>
-        {unresolvedCount > 0 ? `${unresolvedCount} unresolved error${unresolvedCount !== 1 ? 's' : ''}` : 'No unresolved errors'}
+        {unresolvedCount > 0 ? `${formatNumber(unresolvedCount)} unresolved error${unresolvedCount !== 1 ? 's' : ''}` : 'No unresolved errors'}
       </div>
 
       {/* Filters */}

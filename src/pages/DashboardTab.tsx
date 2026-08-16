@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getTopicTag } from '../lib/billUtils';
 import { SkeletonPulse, DashboardSkeleton } from '../components/DashboardSkeleton';
 import { getCache, setCache, TTL } from '../lib/cache';
+import { formatNumber } from '../lib/formatNumber';
 import { DemographicsPrompt } from '../components/DemographicsPrompt';
 import type { Representative } from '../lib/types';
 
@@ -213,7 +214,7 @@ export function DashboardTab({
             contextText: repBillIdSet.has(b.bill_id)
               ? `Vote to compare with ${repRes.data?.first_name} ${repRes.data?.last_name}`
               : b.total_votes >= 5
-                ? `${b.total_votes} district members have voted`
+                ? `${formatNumber(b.total_votes)} district members have voted`
                 : 'Be among the first in your district to vote',
           }));
         setWorthYourVoteBills(worthBills);
@@ -512,8 +513,8 @@ export function DashboardTab({
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724' }}>Bills voted on</span>
             <span>
-              <span style={{ fontSize: 13, fontWeight: 900, color: '#1B4332' }}>{userVoteCount}</span>
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#94a3b8' }}> of {activeBillCount} active</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#1B4332' }}>{formatNumber(userVoteCount)}</span>
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#94a3b8' }}> of {formatNumber(activeBillCount)} active</span>
             </span>
           </div>
           <div style={{ height: 5, borderRadius: 3, background: '#E2E8E4', overflow: 'hidden' }}>
@@ -751,7 +752,7 @@ export function DashboardTab({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{bill.total_votes} votes</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{formatNumber(bill.total_votes)} votes</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
                     </div>
                   </>
@@ -819,7 +820,7 @@ export function DashboardTab({
                       </span>
                     ) : bill.total_votes >= 5 ? (
                       <span style={{ fontSize: 11, fontWeight: 700, background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: 10 }}>
-                        {bill.total_votes} voted
+                        {formatNumber(bill.total_votes)} voted
                       </span>
                     ) : null}
                   </div>

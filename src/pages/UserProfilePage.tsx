@@ -4,6 +4,7 @@ import { logError } from '../lib/errorLogger';
 import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
+import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 import type { Bill, UserVote, VotingBlockPublic } from '../lib/types';
 import { DemographicsFields } from '../components/DemographicsFields';
@@ -474,14 +475,14 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
             padding: 12,
           }}>
             <StatCard
-              value={stats?.totalVotes ?? 0}
+              value={formatNumber(stats?.totalVotes ?? 0)}
               label="Bills Voted On"
               bg="#F4F6F0"
               numColor="#0f1724"
               labelColor="#64748b"
             />
             <StatCard
-              value={stats?.withMajority ?? 0}
+              value={formatNumber(stats?.withMajority ?? 0)}
               label="With Majority"
               bg="#F4F6F0"
               numColor="#0f1724"
@@ -728,7 +729,7 @@ export function UserProfilePage({ onSignIn, onNavigateToBill, onNavigateToAbout,
               <div style={{ minWidth: 0 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#0f1724', display: 'block' }}>{b.name}</span>
                 <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                  {b.member_count} member{b.member_count === 1 ? '' : 's'}
+                  {formatNumber(b.member_count)} member{b.member_count === 1 ? '' : 's'}
                   {!b.is_active && ' · Inactive — tap to revive'}
                 </span>
               </div>

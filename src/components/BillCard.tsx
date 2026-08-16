@@ -1,4 +1,5 @@
 import { getTopicTag, getSummaryPreview } from '../lib/billUtils';
+import { formatNumber } from '../lib/formatNumber';
 
 // Deliberately narrower than the full `Bill` row — this is exactly what the card
 // renders, so it's satisfied structurally by both `Bill` and the `my_bill_feed`
@@ -123,7 +124,7 @@ export function BillCard({
       {/* Tally labels */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#1DB97A' }}>{supportPct}% Support</span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}>{bill.total_votes} votes cast</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#94a3b8' }}>{formatNumber(bill.total_votes)} votes cast</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#F0455A' }}>{opposePct}% Oppose</span>
       </div>
 

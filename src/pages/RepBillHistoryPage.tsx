@@ -4,6 +4,7 @@ import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import { BillHistoryRow } from '../components/RepBillRows';
 import { logError } from '../lib/errorLogger';
+import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 
 type RepBillHistoryPageProps = {
@@ -217,7 +218,7 @@ export function RepBillHistoryPage({
               {preloadedRepName ?? `${rep!.first_name} ${rep!.last_name}`}
             </p>
             <p style={{ fontSize: 13, color: '#94a3b8', margin: 0, marginTop: 2 }}>
-              {bills.length} vote{bills.length !== 1 ? 's' : ''} on record
+              {formatNumber(bills.length)} vote{bills.length !== 1 ? 's' : ''} on record
             </p>
           </>
         ) : (
@@ -355,7 +356,7 @@ export function RepBillHistoryPage({
             paddingLeft: 8,
             flexShrink: 0,
           }}>
-            {resultCount} bills
+            {formatNumber(resultCount)} bills
           </span>
         </div>
       </div>

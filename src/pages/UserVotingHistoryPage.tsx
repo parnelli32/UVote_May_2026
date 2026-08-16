@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { BottomNav } from '../components/BottomNav';
 import { AppHeader } from '../components/AppHeader';
 import { logError } from '../lib/errorLogger';
+import { formatNumber } from '../lib/formatNumber';
 import type { NavTab } from '../components/BottomNav';
 
 type UserVotingHistoryPageProps = {
@@ -342,7 +343,7 @@ export function UserVotingHistoryPage({
           My Voting Record
         </p>
         <p style={{ fontSize: 12, color: '#94a3b8', margin: 0, marginTop: 2 }}>
-          {rows.length} bill{rows.length !== 1 ? 's' : ''} voted on
+          {formatNumber(rows.length)} bill{rows.length !== 1 ? 's' : ''} voted on
         </p>
       </div>
 
@@ -410,7 +411,7 @@ export function UserVotingHistoryPage({
             paddingLeft: 8,
             flexShrink: 0,
           }}>
-            {resultCount} votes
+            {formatNumber(resultCount)} votes
           </span>
         </div>
       </div>

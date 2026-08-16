@@ -44,6 +44,7 @@ export type Database = {
           bio: string | null;
           district_id: string | null;
           legislative_body_id: string | null;
+          photo_url: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['representatives']['Row'], 'representative_id' | 'created_at'> & {
