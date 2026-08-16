@@ -13,28 +13,37 @@
 //   node --experimental-strip-types format_gate.mjs --file path/to/summary.txt
 //   echo "<summary text>" | node --experimental-strip-types format_gate.mjs
 //
-// Exit code 0 = pass (exactly 4 non-empty sections), 1 = fail.
+// Exit code 0 = pass (exactly 4 non-empty sections in the mandatory core),
+// 1 = fail. If the input carries a `[[READ MORE]]`-delimited expandable
+// detail suffix (see splitSummaryCoreAndDetail in billUtils.ts), that detail
+// is split off first — the 4-section/word-count gate applies to the
+// mandatory core alone, matching the frontend's own split-before-parse
+// requirement (the real parser's final section capture would otherwise
+// silently swallow the marker and all detail text into Part 4).
 
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const billUtilsUrl = new URL('../../../../src/lib/billUtils.ts', import.meta.url);
-const { parseSummaryIntoSections } = await import(billUtilsUrl);
+const { parseSummaryIntoSections, splitSummaryCoreAndDetail } = await import(billUtilsUrl);
 
 function wordCount(text) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 /** Runs the real parser and applies the deterministic pass/fail gate:
- *  exactly 4 sections, all non-empty. */
+ *  exactly 4 non-empty sections in the mandatory core (expandable detail,
+ *  if present, is split off first and reported separately). */
 export function runFormatGate(summary) {
-  const sections = parseSummaryIntoSections(summary);
+  const { core, detail } = splitSummaryCoreAndDetail(summary);
+  const sections = parseSummaryIntoSections(core);
   const nonEmpty = sections.every((s) => s.text.trim().length > 0);
   const pass = sections.length === 4 && nonEmpty;
-  const totalWords = wordCount(summary ?? '');
+  const coreWords = wordCount(core ?? '');
+  const detailWords = detail ? wordCount(detail) : 0;
 
   const warnings = [];
-  const hasFifthMarker = /(?:^|\s)5\.\s/.test((summary ?? '').trim());
+  const hasFifthMarker = /(?:^|\s)5\.\s/.test((core ?? '').trim());
   if (hasFifthMarker) {
     warnings.push(
       "A '5.' marker was detected in the input. The real parser has no 5th " +
@@ -44,15 +53,26 @@ export function runFormatGate(summary) {
       "this warning exists to catch it if the generation step accidentally does."
     );
   }
-  if (pass && (totalWords < 100 || totalWords > 220)) {
+  if (pass && (coreWords < 100 || coreWords > 220)) {
     warnings.push(
-      `Word count (${totalWords}) is well outside the 120-180 soft target. ` +
+      `Core word count (${coreWords}) is well outside the 120-180 soft target. ` +
       'Confirm this is proportionate to the bill\'s actual complexity (see ' +
-      'Criterion 9 in SKILL.md), not padding or unwarranted truncation.'
+      'Criterion 9 in SKILL.md), not padding or unwarranted truncation. If the ' +
+      'bill genuinely needs more room, move the supplementary material into ' +
+      "expandable detail (a '[[READ MORE]]' suffix) rather than inflating the " +
+      'mandatory core — the core alone must satisfy all 9 rubric criteria.'
     );
   }
 
-  return { pass, sectionCount: sections.length, sections, wordCount: totalWords, warnings };
+  return {
+    pass,
+    sectionCount: sections.length,
+    sections,
+    wordCount: coreWords,
+    hasDetail: detail !== null,
+    detailWordCount: detailWords,
+    warnings,
+  };
 }
 
 function readCliInput() {

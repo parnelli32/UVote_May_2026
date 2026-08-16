@@ -61,5 +61,35 @@ test('word count outside 120-180 soft target produces a warning but does not its
   const short = '1. a 2. b 3. c 4. d';
   const r = runFormatGate(short);
   assert.equal(r.pass, true);
-  assert.ok(r.warnings.some((w) => w.includes('Word count')));
+  assert.ok(r.warnings.some((w) => w.includes('word count')));
+});
+
+test('a [[READ MORE]] suffix is split off before parsing — core alone is gated, detail is reported separately', () => {
+  const core = '1. one 2. two 3. three 4. four';
+  const detail = 'Extra itemized detail that would otherwise be absorbed into section 4.';
+  const r = runFormatGate(`${core} [[READ MORE]] ${detail}`);
+  assert.equal(r.pass, true);
+  assert.equal(r.sectionCount, 4);
+  assert.deepEqual(r.sections.map((s) => s.text), ['one', 'two', 'three', 'four']);
+  assert.equal(r.hasDetail, true);
+  assert.ok(r.detailWordCount > 0);
+});
+
+test('a summary with no [[READ MORE]] marker reports no detail (backward compatible with every summary generated before this convention existed)', () => {
+  const r = runFormatGate('1. one 2. two 3. three 4. four');
+  assert.equal(r.hasDetail, false);
+  assert.equal(r.detailWordCount, 0);
+});
+
+test('core word count gate applies to the core only, not core+detail combined', () => {
+  // A well-formed core sized inside the 120-180 target, plus a long detail
+  // block, must not trip the soft-target warning — that warning is
+  // specifically about the mandatory core citizens always see, not the
+  // optional expandable detail.
+  const filler = (n) => Array(n).fill('word').join(' ');
+  const core = `1. ${filler(35)} 2. ${filler(35)} 3. ${filler(35)} 4. ${filler(35)}`;
+  const longDetail = Array(150).fill('word').join(' ');
+  const r = runFormatGate(`${core} [[READ MORE]] ${longDetail}`);
+  assert.equal(r.pass, true);
+  assert.ok(!r.warnings.some((w) => w.includes('word count')));
 });

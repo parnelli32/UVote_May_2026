@@ -10,6 +10,7 @@ import type { NavTab } from '../components/BottomNav';
 import {
   getTopicTag,
   parseSummaryIntoSections,
+  splitSummaryCoreAndDetail,
   formatIntroducedDate,
   isBillVotable,
 } from '../lib/billUtils';
@@ -52,6 +53,7 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
   const [districtRepVote, setDistrictRepVote] = useState<RepVoteWithRep | null | undefined>(undefined);
   const [atLargeRepVotes, setAtLargeRepVotes] = useState<RepVoteWithRep[]>([]);
   const [atLargeExpanded, setAtLargeExpanded] = useState(false);
+  const [detailExpanded, setDetailExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [voting, setVoting] = useState(false);
@@ -328,7 +330,8 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
   }
 
   const tag = getTopicTag(bill.title, bill.summary, bill.topic);
-  const sections = parseSummaryIntoSections(bill.summary);
+  const { core: summaryCore, detail: summaryDetail } = splitSummaryCoreAndDetail(bill.summary);
+  const sections = parseSummaryIntoSections(summaryCore);
   const supportPct = tally.total_votes > 0 ? Math.round((tally.support_count / tally.total_votes) * 100) : 0;
   const opposePct = tally.total_votes > 0 ? Math.round((tally.oppose_count / tally.total_votes) * 100) : 0;
   const isSupport = userVote?.vote === 'support';
@@ -497,6 +500,35 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
                 </span>
               </div>
             ))}
+
+            {/* ── EXPANDABLE DETAIL ── */}
+            {summaryDetail && (
+              <div style={{ borderTop: '1px solid #F4F6F0' }}>
+                <button
+                  onClick={() => setDetailExpanded((v) => !v)}
+                  style={{
+                    width: '100%', background: 'white', color: '#1B4332',
+                    border: 'none', padding: '12px 16px',
+                    fontSize: 13, fontWeight: 700, textAlign: 'left', minHeight: 'unset',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}
+                >
+                  <span>{detailExpanded ? 'Show less' : 'More detail'}</span>
+                  <i className={`fa-solid fa-chevron-${detailExpanded ? 'up' : 'down'}`} style={{ fontSize: 12 }} />
+                </button>
+                {detailExpanded && (
+                  <div style={{ padding: '0 16px 14px' }}>
+                    <span style={{
+                      display: 'block',
+                      fontSize: 13, color: '#0f1724', lineHeight: 1.65,
+                      whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+                    }}>
+                      {summaryDetail}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── VOTE BUTTONS ── */}
             <div style={{
