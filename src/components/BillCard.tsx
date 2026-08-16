@@ -35,9 +35,14 @@ export function BillCard({
   const supportPct = bill.total_votes > 0 ? Math.round((bill.support_count / bill.total_votes) * 100) : 0;
   const opposePct = bill.total_votes > 0 ? Math.round((bill.oppose_count / bill.total_votes) * 100) : 0;
 
+  const votedLabel = voted ? `, you voted ${isSupport ? 'support' : 'oppose'}` : '';
+  const cardLabel = `${bill.title}, ${tag.label}${votedLabel}`;
+
   return (
-    <div
+    <button
+      type="button"
       onClick={onTap}
+      aria-label={cardLabel}
       style={{
         background: 'white',
         borderRadius: 12,
@@ -46,6 +51,11 @@ export function BillCard({
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'stretch',
+        justifyContent: 'flex-start',
+        width: '100%',
+        textAlign: 'left',
+        font: 'inherit',
       }}
     >
       {/* Tag row */}
@@ -129,6 +139,6 @@ export function BillCard({
       </div>
 
 
-    </div>
+    </button>
   );
 }
