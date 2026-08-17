@@ -465,6 +465,26 @@ function computeCommitteeStatus(
   };
 }
 
+// INTRODUCED-DATE BUG (2026-08-16): the original insert path wrote
+// `entry.status_date` from getMasterList as `bills.introduced_date`. Per the
+// same Status/Progress table referenced above, `status_date` (both on the
+// master-list entry and on getBill's own top-level field) is the date of the
+// bill's LATEST status change, not its introduction - for a bill that has
+// since moved further, that's whatever event is currently most recent (floor
+// passage, Act-signing, etc.), never the introduction date once a bill has
+// progressed past being introduced. Confirmed against real HB77/HB324 data
+// (`uvote-bill-summary-confirmation-pilot` report, Finding 3): both bills'
+// stored `introduced_date` exactly matched a later status event (HB77's
+// House floor passage date; HB324's Governor-signing date) while their own
+// printed PDF headers gave a different, earlier true introduction date.
+// event 1 = Introduced is the correct event to read instead - like
+// `computeCommitteeStatus` above, this reads the specific event off the
+// cumulative `progress` array rather than trusting a coarse status field.
+function getIntroducedDate(progress: { date: string; event: number }[] | undefined): string | null {
+  if (!progress || progress.length === 0) return null;
+  return progress.find((p) => p.event === 1)?.date ?? null;
+}
+
 async function upsertRollCallVotes(
   admin: ReturnType<typeof createAdminClient>,
   billId: string,
@@ -616,7 +636,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             status,
             legislative_body_id: bodyId,
             bill_number: entry.number,
-            introduced_date: entry.status_date,
+            introduced_date: getIntroducedDate(fullBill.progress),
             reported_from_committee_at: reportedFromCommitteeAt,
           })
           .select('bill_id')
