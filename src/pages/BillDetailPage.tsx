@@ -313,7 +313,23 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
     );
   }
 
-  if (error || !bill || bill.status === 'pending_review') {
+  if (bill && bill.status === 'pending_review') {
+    return (
+      <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
+        <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
+          <AppHeader onNavigateToHowItWorks={onNavigateToHowItWorks} onNavigateToAbout={onNavigateToAbout} onNavigateToElectionCenter={onNavigateToElectionCenter} />
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <i className="fa-solid fa-circle-info" style={{ fontSize: 28, color: '#8a5a00', marginBottom: 10 }} />
+            <p style={{ fontSize: 13, color: '#0f1724', fontWeight: 700, marginBottom: 4 }}>Still under review</p>
+            <p style={{ fontSize: 13, color: '#64748b' }}>This bill is still being reviewed and isn't available to vote on yet. Check back soon.</p>
+          </div>
+          {navProps && <BottomNav {...navProps} />}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !bill) {
     return (
       <div className="flex flex-col items-center overflow-hidden" style={{ background: '#F4F6F0', height: '100dvh' }}>
         <div className="w-full max-w-[600px] flex flex-col" style={{ height: '100dvh' }}>
