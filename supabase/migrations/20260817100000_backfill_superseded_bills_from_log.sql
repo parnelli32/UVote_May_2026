@@ -4,11 +4,10 @@
   1. Changes
     - Data-only: populates `bills.superseded_at`/`superseded_by`/
       `superseded_reason` (added, still all-null, by
-      `20260817090000_add_bills_superseded_and_vote_gate.sql`) for every
-      PA bill confirmed as superseded by
+      `20260817090000_add_bills_superseded_and_vote_gate.sql`) for all 48
+      PA bills confirmed as superseded by
       `data/uvote-superseded-bills-log.md` (firstmate home) as of its
-      2026-08-17 state (33 confirmed findings covering 33 of that log's 48
-      total confirmed bill numbers — see note below on the remaining 15).
+      2026-08-17 state, across that log's 24 confirmed sections.
     - Each UPDATE is matched on (bill_number, legislative_body_id) to
       avoid any cross-body collision between a House and Senate bill
       sharing a number. Every UPDATE is preceded by a comment citing the
@@ -20,22 +19,39 @@
         Pennsylvania Senate: 474bb689-6767-4a56-8429-c09c20bc715c
         Pennsylvania House:  3b6dee71-7cbd-41f1-95d0-3f997cf035be
 
-  2. Deliberately NOT included in this migration (15 bills, log-confirmed
-     but with no day-level date available)
-    - SB1000, plus the 13-bill "PA General Fund appropriation placeholders"
-      class (SB280, SB427, SB428, SB429, SB430, SB1001, SB1002, SB1003,
-      SB1004, HB1330, HB1977, HB1978, HB1979) — all superseded by SB160,
-      the vehicle that carried PA's real FY2025-26 budget. The log cites
-      only "passed by both chambers in July 2026 (44-6 Senate, 167-35
-      House)" for SB160 itself — no signing date or specific day anywhere
-      in the log.
-    - SB186 — superseded by "separate legislation folded into the
-      November 2025 state budget agreement" ending PA's RGGI
-      participation. The log cites only the month, not a specific date.
-    - Per this migration's task brief, an ambiguous date is a
-      needs-decision, not a guess — these 15 rows are deferred to a
-      follow-up migration once an exact `superseded_at` date is decided
-      for SB160 and the Nov. 2025 budget deal.
+  2. Dates resolved via direct LegiScan research (not in the log itself)
+    - 33 of the 48 bills had a clean day-level date already cited in the
+      log (an Act number + signing date). The remaining 15 - SB1000, the
+      13-bill "PA General Fund appropriation placeholders" class, and
+      SB186 - shared a superseding vehicle the log describes only by
+      month ("July 2026" for SB160; "November 2025" for SB186's vehicle).
+      Per a captain decision (see the firstmate status log for this task,
+      key `superseded-bills-ambiguous-dates`), pinned the exact dates via
+      LegiScan's own `getBill` progress/history/text data for the real
+      bills, not general web search (a web search on SB160 turned up
+      real-world facts - different vote tallies, a different fiscal year
+      - that conflict with the log's own narrative, confirming LegiScan's
+      bill-specific data as the authoritative source here instead):
+        - SB160 (PA's real FY2025-26 General Appropriation Act, LegiScan
+          bill_id 2020034): `history` shows "Approved by the Governor" /
+          "Act No. 1A of 2025" on 2025-11-12 - not "July 2026" as the log
+          states (that date appears to describe the following year's
+          FY2026-27 budget instead, a different bill). Used for SB1000 and
+          the 13-bill placeholder class below.
+        - SB186's actual superseding vehicle: the log names no single bill
+          for this one ("separate legislation... state budget agreement").
+          SB186 itself (LegiScan bill_id 1941471) carries no cross-reference
+          to what mooted it, so searched every bill enacted in the same
+          2025-11-12 budget-package window (PA session 2192) for RGGI/CO2
+          Budget Trading Program language and found it: HB416 (the Fiscal
+          Code bill, Act No. 45 of 2025, signed 2025-11-12, LegiScan
+          bill_id 1946034), Section 47(2) of its enacted text: "THE
+          PROVISIONS OF 25 PA. CODE CH. 145 SUBCH. E (RELATING TO CO2
+          BUDGET TRADING PROGRAM) ARE ABROGATED" - the exact DEP
+          regulation SB186 targeted, in the same budget package as SB160.
+          Used HB416 (Act 45 of 2025) as SB186's `superseded_by` in place
+          of the log's generic citation, since a precise bill number is
+          now available.
 */
 
 -- ─── SB153 (PA Senate) — log section "## SB153 (PA Senate)" ────────────────
@@ -313,3 +329,122 @@ SET superseded_at = '2026-02-11T00:00:00Z',
     superseded_by = 'HB710 (Act 3 of 2026)',
     superseded_reason = 'SB1156 and HB710 carry the identical title and description amending Title 75 financial-responsibility and online-verification provisions. Bill-text comparison shows identical amended subsections and an identical new §1786.1 online verification system, differing only in minor negotiated detail. HB710 passed and was signed as Act 3 of 2026 on 2026-02-11, while SB1156 sat untouched in committee since January 2026.'
 WHERE bill_number = 'SB1156' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+-- ─── SB1000 (PA Senate) — log section "## SB1000 (PA Senate)" ─────────────
+-- SB160 (real FY2025-26 General Appropriation Act) signed as Act 1A of
+-- 2025 on 2025-11-12 per LegiScan's own progress/history data for
+-- bill_id 2020034 ("Approved by the Governor" / "Act No. 1A of 2025",
+-- both dated 2025-11-12) — see this migration's header note on why this
+-- date supersedes the log's own vaguer "July 2026" citation.
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'SB1000 is the standard procedural placeholder Pennsylvania''s Senate Appropriations Committee introduces early in a budget cycle, funding only one line item ($144,138,000 for Dept. of Education career/technical education); it never advanced past its September 2025 committee referral. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12. SB1000 was superseded before ever reaching a floor vote, not defeated on its merits.'
+WHERE bill_number = 'SB1000' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+-- ─── PA General Fund appropriation placeholders (2025-26 cycle) ───────────
+-- log section "## PA General Fund appropriation placeholders (2025-26
+-- cycle) — SB280, SB427, SB428, SB429, SB430, SB1001, SB1002, SB1003,
+-- SB1004, HB1330, HB1977, HB1978, HB1979"
+-- All superseded by SB160 (Act 1A of 2025, signed 2025-11-12 — see the
+-- SB1000 UPDATE above and this migration's header note for sourcing).
+-- SB1001 and HB1330 were individually confirmed against palegis.us by
+-- the log; SB1002-1004, SB427-430, SB280, and HB1977-1979 were included
+-- by exact title/text match to SB1001/HB1330 (same boilerplate "General
+-- Appropriation Act" placeholder text), per the log's own caveat that
+-- these were pattern-matched rather than each individually re-verified.
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Standard "General Appropriation Act" placeholder bill for the 2025-26 PA budget cycle (same boilerplate text as SB1000), referred to Appropriations 2025-09-08 with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB1001' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB1002' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB1003' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB1004' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB427' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB428' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB429' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB430' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate "General Appropriation Act" placeholder text as SB1001/SB1000 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'SB280' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Companion "General Appropriation Act" placeholder bill for the 2025-26 PA budget cycle; HB1330 itself passed the House 105-97 (2025-07-14), was reported to Senate Appropriations, then re-committed 2025-07-17 with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12 — the vehicle that actually carried the budget.'
+WHERE bill_number = 'HB1330' AND legislative_body_id = '3b6dee71-7cbd-41f1-95d0-3f997cf035be';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate placeholder text as HB1330 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'HB1977' AND legislative_body_id = '3b6dee71-7cbd-41f1-95d0-3f997cf035be';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate placeholder text as HB1330 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'HB1978' AND legislative_body_id = '3b6dee71-7cbd-41f1-95d0-3f997cf035be';
+
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'SB160 (Act 1A of 2025)',
+    superseded_reason = 'Same boilerplate placeholder text as HB1330 (title/pattern-matched, not individually re-verified against LegiScan/palegis), referred to committee with no further action. Pennsylvania''s actual FY2025-26 budget was enacted through a different bill, SB160, signed as Act 1A of 2025 on 2025-11-12.'
+WHERE bill_number = 'HB1979' AND legislative_body_id = '3b6dee71-7cbd-41f1-95d0-3f997cf035be';
+
+-- ─── SB186 (PA Senate) — log section "## SB186 (PA Senate)" ───────────────
+-- The log names no single superseding bill for SB186 ("separate
+-- legislation... state budget agreement"). SB186 itself (LegiScan
+-- bill_id 1941471) carries no cross-reference to what mooted it, so
+-- every bill enacted in the same 2025-11-12 budget-package window (PA
+-- session 2192) was searched for RGGI/CO2 Budget Trading Program
+-- language: HB416 (the Fiscal Code bill, Act 45 of 2025, signed
+-- 2025-11-12, LegiScan bill_id 1946034) is the match — Section 47(2) of
+-- its enacted text explicitly abrogates "25 Pa. Code Ch. 145 Subch. E
+-- (relating to CO2 Budget Trading Program)," the exact DEP regulation
+-- SB186 targeted. See this migration's header note for the full trail.
+UPDATE bills
+SET superseded_at = '2025-11-12T00:00:00Z',
+    superseded_by = 'HB416 (Act 45 of 2025)',
+    superseded_reason = 'SB186 would repeal by statute the DEP regulation letting Pennsylvania participate in the Regional Greenhouse Gas Initiative (RGGI), a multi-state carbon-pricing program; it passed the Senate 31-18 on 2025-02-04 and remained pending in the House. Pennsylvania''s RGGI participation was independently ended by Section 47(2) of HB416 (the Fiscal Code bill, signed as Act 45 of 2025 on 2025-11-12, part of the same budget package as SB160/Act 1A), which explicitly abrogates "25 Pa. Code Ch. 145 Subch. E (relating to CO2 Budget Trading Program)" — the exact regulation SB186 targeted. SB186''s own practical effect is already resolved regardless of what happens to the bill itself.'
+WHERE bill_number = 'SB186' AND legislative_body_id = '474bb689-6767-4a56-8429-c09c20bc715c';
