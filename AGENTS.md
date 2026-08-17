@@ -61,7 +61,7 @@ npm run lint         # eslint .
 npm run typecheck    # tsc --noEmit -p tsconfig.app.json
 ```
 
-There is no test suite/script in this repo currently — `lint` and `typecheck` are the available correctness checks.
+There is no aggregate test suite or CI wiring in this repo - `lint` and `typecheck` are the only checks that run automatically. `scripts/*.test.mjs` (e.g. `isBillVotable.test.mjs`, `homeTabStatusFilterConsistency.test.mjs`, `legiscanIntroducedDate.test.mjs`) are one-off regression tests written for specific past bugs, each run individually via `node --test scripts/<file>.test.mjs` (or with `--experimental-strip-types` added when the test imports a `.ts` source file directly, as `isBillVotable.test.mjs` does).
 
 Node must be ≥18 (ideally 22). The machine's system default Node is much older and will silently break Vite/tooling with confusing errors — always `nvm use 22` before running any of the above.
 
