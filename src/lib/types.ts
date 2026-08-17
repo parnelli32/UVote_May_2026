@@ -71,6 +71,9 @@ export type Database = {
           bill_number?: string | null;
           reported_from_committee_at?: string | null;
           short_description?: string | null;
+          superseded_at?: string | null;
+          superseded_by?: string | null;
+          superseded_reason?: string | null;
         };
         Insert: Omit<Database['public']['Tables']['bills']['Row'], 'bill_id' | 'created_at'> & {
           bill_id?: string;
@@ -365,6 +368,9 @@ export type Database = {
           bill_number: string | null;
           reported_from_committee_at: string | null;
           short_description: string | null;
+          superseded_at: string | null;
+          superseded_by: string | null;
+          superseded_reason: string | null;
           support_count: number;
           oppose_count: number;
           total_votes: number;

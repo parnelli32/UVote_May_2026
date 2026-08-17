@@ -43,6 +43,8 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
 
     if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
 
+    q = q.is('superseded_at', null);
+
     if (statusFilter === 'active') {
       q = q.eq('status', 'active');
       if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
@@ -123,6 +125,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
     async function loadStatusOnlyCount() {
       let q = supabase.from('my_bill_feed').select('bill_id', { count: 'exact', head: true });
       if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
+      q = q.is('superseded_at', null);
       if (statusFilter === 'active') {
         q = q.eq('status', 'active');
         if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
@@ -147,6 +150,7 @@ export function HomeTab({ onNavigateToBill }: { onNavigateToBill: (billId: strin
       let q = supabase.from('my_bill_feed').select('bill_id', { count: 'exact', head: true }).is('my_vote', null);
       if (currentBodyId) q = q.eq('legislative_body_id', currentBodyId);
       q = q.eq('status', 'active');
+      q = q.is('superseded_at', null);
       if (requiresCommitteeReport) q = q.not('reported_from_committee_at', 'is', null);
       const { count } = await q;
       if (!cancelled) setUnvotedActiveCount(count ?? 0);

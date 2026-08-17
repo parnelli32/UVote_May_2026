@@ -371,6 +371,21 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
             </div>
           )}
 
+          {/* Superseded banner - history stays visible, voting is closed */}
+          {bill.superseded_at && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              background: '#FFF3D6', border: '1px solid #E8D19C', borderRadius: 12,
+              padding: '12px 14px', marginBottom: 10,
+            }}>
+              <i className="fa-solid fa-circle-info" style={{ fontSize: 15, color: '#7A4F00', marginTop: 1, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: '#5c4300', lineHeight: 1.5 }}>
+                This bill's policy question was resolved by {bill.superseded_by || 'other legislation'} - voting is closed.
+                {bill.superseded_reason ? ` ${bill.superseded_reason}` : ''}
+              </span>
+            </div>
+          )}
+
           {/* Main content card */}
           <div style={{
             background: 'white', borderRadius: 12, border: '1px solid #E2E8E4', overflow: 'hidden',
@@ -551,7 +566,17 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
               background: 'white', borderTop: '1px solid #E2E8E4',
               padding: '12px 16px 14px', display: 'flex', gap: 8,
             }}>
-              {!user ? (
+              {bill.superseded_at ? (
+                <div style={{
+                  flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                  background: '#F4F6F0', borderRadius: 8, padding: 12,
+                }}>
+                  <i className="fa-solid fa-ban" style={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: '#64748b', lineHeight: 1.4 }}>
+                    Voting is closed - see notice above.
+                  </span>
+                </div>
+              ) : !user ? (
                 <button
                   onClick={onSignUp}
                   style={{
