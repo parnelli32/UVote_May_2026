@@ -10,13 +10,23 @@
 // bill on screen shares the signed-in user's selected body), or a lookup
 // against the full `legislativeBodies` array for a specific bill's own body
 // (BillDetailPage, where the bill's body isn't necessarily the currently
-// selected one). This is a display/list-filtering helper only — the real
-// enforcement is the `uv_insert`/`uv_update` RLS policies on `user_votes`.
+// selected one). A bill is also never votable once `superseded_at` is set -
+// its substantive policy question was already resolved by a different bill
+// or vehicle (see `data/uvote-superseded-bills-log.md` in the firstmate
+// home for the working definition), independent of `status` and the
+// committee-report gate. This is a display/list-filtering helper only -
+// the real enforcement is the `uv_insert`/`uv_update` RLS policies on
+// `user_votes`.
 export function isBillVotable(
-  bill: { status: string; reported_from_committee_at?: string | null },
+  bill: {
+    status: string;
+    reported_from_committee_at?: string | null;
+    superseded_at?: string | null;
+  },
   requiresCommitteeReport: boolean
 ): boolean {
   if (bill.status !== 'active') return false;
+  if (bill.superseded_at) return false;
   if (bill.reported_from_committee_at) return true;
   return !requiresCommitteeReport;
 }
