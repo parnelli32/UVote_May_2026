@@ -200,19 +200,19 @@ function districtNumberFromLegiscanDistrict(district: string): string | null {
 // always cheap.
 async function fetchAllLegiscanRepRefs(
   admin: ReturnType<typeof createAdminClient>
-): Promise<Map<string, string>> {
-  const refs = new Map<string, string>();
+): Promise<Map<string, { representativeId: string; personHash: string | null }>> {
+  const refs = new Map<string, { representativeId: string; personHash: string | null }>();
   const pageSize = 1000; // supabase/config.toml's api.max_rows default
   let from = 0;
   for (;;) {
     const { data, error } = await admin
       .from('representative_external_refs')
-      .select('representative_id, external_people_id')
+      .select('representative_id, external_people_id, person_hash')
       .eq('source', 'legiscan')
       .range(from, from + pageSize - 1);
     if (error) throw error;
     for (const row of data ?? []) {
-      refs.set(row.external_people_id, row.representative_id);
+      refs.set(row.external_people_id, { representativeId: row.representative_id, personHash: row.person_hash });
     }
     if (!data || data.length < pageSize) break;
     from += pageSize;
@@ -301,7 +301,9 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
     title: string;
   }[] = [];
   const newRepPeopleIds: number[] = []; // parallel to newRepRows, for matching inserted rows back to people_id
+  const newRepPersonHashes: string[] = []; // parallel to newRepRows/newRepPeopleIds
   const existingRepUpdates: { representativeId: string; person: LegiscanPerson; bodyId: string; districtId: string }[] = [];
+  let repsUnchanged = 0;
 
   for (const { person, bodyId, districtNumber } of validPeople) {
     const districtId = districtMap.get(`${bodyId}:${districtNumber}`);
@@ -309,9 +311,13 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
       console.error(`No district_id resolved for ${bodyId}/${districtNumber} (people_id ${person.people_id}) — skipping`);
       continue;
     }
-    const existingRepId = repRefsMap.get(String(person.people_id));
-    if (existingRepId) {
-      existingRepUpdates.push({ representativeId: existingRepId, person, bodyId, districtId });
+    const existingRef = repRefsMap.get(String(person.people_id));
+    if (existingRef) {
+      if (existingRef.personHash === person.person_hash) {
+        repsUnchanged++;
+        continue; // unchanged since last sync — skip the no-op UPDATE
+      }
+      existingRepUpdates.push({ representativeId: existingRef.representativeId, person, bodyId, districtId });
     } else {
       newRepRows.push({
         first_name: person.first_name,
@@ -322,6 +328,7 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
         title: person.role === 'Rep' ? 'State Representative' : 'State Senator',
       });
       newRepPeopleIds.push(person.people_id);
+      newRepPersonHashes.push(person.person_hash);
     }
   }
 
@@ -342,6 +349,7 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
       representative_id: r.representative_id,
       source: 'legiscan' as const,
       external_people_id: String(newRepPeopleIds[i]),
+      person_hash: newRepPersonHashes[i],
     }));
     if (refRows.length > 0) {
       const { error: refInsertErr } = await admin.from('representative_external_refs').insert(refRows);
@@ -367,6 +375,15 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
       console.error(`Failed to update representative ${representativeId} (people_id ${person.people_id}):`, updateErr);
       continue;
     }
+    // Only mark person_hash as synced after the representatives write above
+    // has succeeded, matching change_hash's write-ordering rule for bills.
+    const { error: refUpdateErr } = await admin
+      .from('representative_external_refs')
+      .update({ person_hash: person.person_hash, last_synced_at: new Date().toISOString() })
+      .eq('representative_id', representativeId);
+    if (refUpdateErr) {
+      console.error(`Failed to update person_hash for representative ${representativeId} (people_id ${person.people_id}):`, refUpdateErr);
+    }
     repsUpdated++;
   }
   const tDone = Date.now();
@@ -378,7 +395,7 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
   );
   console.log(
     `syncPeople: ${people.length} people fetched, ${newDistrictRows.length} districts inserted, ` +
-    `${repsInserted} representatives inserted, ${repsUpdated} representatives updated`
+    `${repsInserted} representatives inserted, ${repsUpdated} representatives updated, ${repsUnchanged} unchanged (skipped)`
   );
 
   return {
@@ -386,6 +403,7 @@ async function syncPeople(admin: ReturnType<typeof createAdminClient>, sessionId
     districtsInserted: newDistrictRows.length,
     repsInserted,
     repsUpdated,
+    repsUnchanged,
   };
 }
 
@@ -393,11 +411,11 @@ async function upsertSponsors(
   admin: ReturnType<typeof createAdminClient>,
   billId: string,
   sponsors: LegiscanSponsor[],
-  repRefsMap: Map<string, string>
+  repRefsMap: Map<string, { representativeId: string; personHash: string | null }>
 ) {
   const rows = sponsors
     .map((sponsor) => {
-      const representativeId = repRefsMap.get(String(sponsor.people_id));
+      const representativeId = repRefsMap.get(String(sponsor.people_id))?.representativeId;
       if (!representativeId) return null; // rep not yet synced (syncPeople should have run first) — skip, will pick up next cycle
       return {
         bill_id: billId,
@@ -490,7 +508,7 @@ async function upsertRollCallVotes(
   admin: ReturnType<typeof createAdminClient>,
   billId: string,
   rollCallId: number,
-  repRefsMap: Map<string, string>
+  repRefsMap: Map<string, { representativeId: string; personHash: string | null }>
 ) {
   const rollCall = await getRollCall(rollCallId);
 
@@ -508,7 +526,7 @@ async function upsertRollCallVotes(
       if (vote.vote_text === 'Yea') mapped = 'support';
       else if (vote.vote_text === 'Nay') mapped = 'oppose';
       if (!mapped) return null;
-      const representativeId = repRefsMap.get(String(vote.people_id));
+      const representativeId = repRefsMap.get(String(vote.people_id))?.representativeId;
       if (!representativeId) return null;
       return { bill_id: billId, representative_id: representativeId, vote: mapped as 'support' | 'oppose' };
     })

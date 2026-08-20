@@ -160,6 +160,7 @@ export type LegiscanPerson = {
   first_name: string;
   last_name: string;
   district: string; // e.g. "HD-181" / "SD-1"
+  person_hash: string;
 };
 
 export async function getSessionPeople(sessionId: number): Promise<LegiscanPerson[]> {
