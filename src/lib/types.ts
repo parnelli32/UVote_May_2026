@@ -89,6 +89,7 @@ export type Database = {
           bill_id: string;
           representative_id: string;
           sponsor_type: string;
+          sponsor_order?: number | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['bill_sponsors']['Row'], 'bill_sponsor_id' | 'created_at'> & {
