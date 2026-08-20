@@ -15,6 +15,7 @@ type BillFormState = {
   status: string;
   topic: string;
   bill_number: string;
+  source_url: string;
   primary_sponsor_id: string;
   cosponsor_ids: string[];
   legislative_body_id: string;
@@ -23,7 +24,7 @@ type BillFormState = {
 
 const EMPTY_BILL_FORM: BillFormState = {
   title: '', summary: '', bill_text: '', introduced_date: '',
-  status: 'active', topic: '', bill_number: '', primary_sponsor_id: '', cosponsor_ids: [], legislative_body_id: '',
+  status: 'active', topic: '', bill_number: '', source_url: '', primary_sponsor_id: '', cosponsor_ids: [], legislative_body_id: '',
   passed_by_suspension: false,
 };
 
@@ -168,6 +169,7 @@ export function BillsTab({
       status: bill.status,
       topic: bill.topic ?? '',
       bill_number: bill.bill_number ?? '',
+      source_url: bill.source_url ?? '',
       primary_sponsor_id: bill.primary_sponsor_id ?? '',
       cosponsor_ids: (sponsorRows ?? []).map((r) => r.representative_id),
       legislative_body_id: bill.legislative_body_id ?? '',
@@ -201,6 +203,7 @@ export function BillsTab({
         status: form.status,
         topic: form.topic || null,
         bill_number: form.bill_number.trim() || null,
+        source_url: form.source_url.trim() || null,
         primary_sponsor: selectedRep ? `${selectedRep.first_name} ${selectedRep.last_name}` : null,
         primary_sponsor_id: form.primary_sponsor_id || null,
         legislative_body_id: form.legislative_body_id,
@@ -340,6 +343,10 @@ export function BillsTab({
                   style={inputStyle} placeholder="e.g. 250341" />
               </FormField>
             </div>
+            <FormField label="Official source link">
+              <input value={form.source_url} onChange={(e) => setForm((f) => ({ ...f, source_url: e.target.value }))}
+                style={inputStyle} placeholder="e.g. https://phlcouncil.com/..." />
+            </FormField>
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input
