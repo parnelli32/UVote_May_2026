@@ -403,6 +403,7 @@ async function upsertSponsors(
         bill_id: billId,
         representative_id: representativeId,
         sponsor_type: (sponsor.sponsor_type_id === 1 ? 'primary' : 'cosponsor') as 'primary' | 'cosponsor',
+        sponsor_order: sponsor.sponsor_order,
       };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);

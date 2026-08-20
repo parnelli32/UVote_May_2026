@@ -85,6 +85,7 @@ export type LegiscanSponsor = {
   last_name: string;
   district: string;
   sponsor_type_id: number; // 1 = primary/sponsor, 2 = co-sponsor (per manual)
+  sponsor_order: number;
 };
 
 export type LegiscanBillVoteSummary = {
