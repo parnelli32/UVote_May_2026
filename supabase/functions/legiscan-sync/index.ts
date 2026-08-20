@@ -715,6 +715,32 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
       const floorVote = selectFloorVote(fullBill.votes, bodyId);
       if (floorVote) {
         await upsertRollCallVotes(admin, billId, floorVote.roll_call_id, repRefsMap);
+
+        // Consistency check only - not a second source of truth. `status` above is
+        // derived from the bill's coarse top-level LegiScan status (cross-referenced
+        // against `progress` for the committee-DNP override); `floorVote.passed` is
+        // LegiScan's own authoritative per-roll-call outcome flag. They should always
+        // agree when `status` has resolved to passed/failed; a mismatch means one of
+        // the two derivations has a bug worth investigating, so it's logged to
+        // error_logs for admin review rather than silently trusted either way.
+        if (status === 'passed' || status === 'failed') {
+          const legiscanPassed = floorVote.passed === 1;
+          const uvotePassed = status === 'passed';
+          if (legiscanPassed !== uvotePassed) {
+            const mismatchMessage =
+              `Bill ${entry.number} (legiscan bill_id ${entry.bill_id}): floor roll call ` +
+              `${floorVote.roll_call_id} has LegiScan passed=${floorVote.passed} but UVote derived status='${status}'`;
+            console.error(mismatchMessage);
+            const { error: logErr } = await admin.from('error_logs').insert({
+              action: 'legiscan_vote_status_mismatch',
+              user_id: null,
+              error_message: mismatchMessage,
+              error_code: null,
+              resolved: false,
+            });
+            if (logErr) console.error(`Failed to log vote status mismatch for bill ${entry.number}:`, logErr);
+          }
+        }
       }
 
       // Only mark change_hash as synced after every write above has succeeded —
