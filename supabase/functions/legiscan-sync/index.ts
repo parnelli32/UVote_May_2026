@@ -625,6 +625,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             legislative_body_id: bodyId,
             bill_number: entry.number,
             reported_from_committee_at: reportedFromCommitteeAt,
+            last_status_change_at: fullBill.status_date,
           })
           .eq('bill_id', billId);
       } else {
@@ -638,6 +639,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             bill_number: entry.number,
             introduced_date: getIntroducedDate(fullBill.progress),
             reported_from_committee_at: reportedFromCommitteeAt,
+            last_status_change_at: fullBill.status_date,
           })
           .select('bill_id')
           .single();
@@ -804,7 +806,10 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
       const fullBill = await getBill(Number(ref.external_bill_id));
       const { reportedFromCommitteeAt, diedInCommittee } = computeCommitteeStatus(fullBill.progress);
 
-      const billUpdate: Record<string, unknown> = { reported_from_committee_at: reportedFromCommitteeAt };
+      const billUpdate: Record<string, unknown> = {
+        reported_from_committee_at: reportedFromCommitteeAt,
+        last_status_change_at: fullBill.status_date,
+      };
       if (diedInCommittee) billUpdate.status = 'failed';
 
       const { error: billUpdateErr } = await admin.from('bills').update(billUpdate).eq('bill_id', ref.bill_id);
