@@ -626,6 +626,9 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             bill_number: entry.number,
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
+            source_url: fullBill.state_link,
+            pending_committee_id: fullBill.pending_committee_id ?? null,
+            pending_committee_name: fullBill.committee?.name ?? null,
           })
           .eq('bill_id', billId);
       } else {
@@ -640,6 +643,9 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             introduced_date: getIntroducedDate(fullBill.progress),
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
+            source_url: fullBill.state_link,
+            pending_committee_id: fullBill.pending_committee_id ?? null,
+            pending_committee_name: fullBill.committee?.name ?? null,
           })
           .select('bill_id')
           .single();
@@ -809,6 +815,9 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
       const billUpdate: Record<string, unknown> = {
         reported_from_committee_at: reportedFromCommitteeAt,
         last_status_change_at: fullBill.status_date,
+        source_url: fullBill.state_link,
+        pending_committee_id: fullBill.pending_committee_id ?? null,
+        pending_committee_name: fullBill.committee?.name ?? null,
       };
       if (diedInCommittee) billUpdate.status = 'failed';
 

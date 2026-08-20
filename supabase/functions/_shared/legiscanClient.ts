@@ -107,9 +107,19 @@ export type LegiscanBill = {
   status_date: string;
   title: string;
   description: string;
+  state_link: string;
   sponsors: LegiscanSponsor[];
   votes: LegiscanBillVoteSummary[];
   progress: { date: string; event: number }[];
+  // Tracks the bill's CURRENT committee across chamber crossover, not just
+  // its first committee stop (live-verified 2026-08-20: a bill that passed
+  // the House and was re-referred to the Senate had both fields update to
+  // the Senate's committee). The manual documents `committee.committee_name`,
+  // but the real live response uses `committee.name` - verified directly
+  // against a live getBill() response, see
+  // supabase/migrations/20260820130000_add_bills_source_url_and_pending_committee.sql.
+  pending_committee_id?: number;
+  committee?: { committee_id: number; chamber: string; chamber_id: number; name: string };
 };
 
 export async function getBill(billId: number): Promise<LegiscanBill> {
