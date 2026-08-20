@@ -8,12 +8,21 @@
       corrected to a true introduction date.
     - Per the INTRODUCED-DATE BUG documented in
       `supabase/functions/legiscan-sync/index.ts`, the original sync code
-      wrote LegiScan's `status_date` into `introduced_date` for every bill.
-      For any bill that has NOT since had its `introduced_date` corrected,
-      the CURRENT `introduced_date` value already equals what LegiScan's
-      `status_date` was at last sync - that's exactly what the bug
-      produced. Copying it into `last_status_change_at` is therefore a
-      real, evidenced backfill, not a guess.
+      wrote LegiScan's `status_date` into `introduced_date` for every bill,
+      and only on the INSERT path - the update path has never written
+      `introduced_date`. For any bill that has NOT since had its
+      `introduced_date` corrected, the CURRENT `introduced_date` value
+      therefore equals what LegiScan's `status_date` was as of that bill's
+      most recent RECORDED sync as of this backfill - which, for most
+      bills, is simply their original insert, since `introduced_date` is
+      never touched again afterward. It may not reflect any status change
+      that has happened since then. This backfill is a best-effort
+      approximation from the best data available, not a live value; it
+      self-corrects automatically the next time the bill's row goes
+      through a real `legiscan-sync` invocation (insert, update, or the
+      committee-backfill phase), since all three now write a fresh
+      `last_status_change_at` from that sync's own `fullBill.status_date`
+      on every touch.
     - Scoped to `legislative_body_id IN (PA House, PA Senate)` - the only
       bodies LegiScan sync ever populates (Philadelphia City Council bills
       are entered directly by admins, never touch legiscan-sync, and their
@@ -48,6 +57,7 @@
 UPDATE bills b
 SET last_status_change_at = b.introduced_date
 WHERE b.introduced_date IS NOT NULL
+  AND b.last_status_change_at IS NULL
   AND b.legislative_body_id IN (
     '3b6dee71-7cbd-41f1-95d0-3f997cf035be', -- PA House
     '474bb689-6767-4a56-8429-c09c20bc715c'  -- PA Senate
