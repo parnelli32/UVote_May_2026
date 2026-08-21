@@ -157,6 +157,7 @@ import {
   getRollCall,
   type LegiscanSponsor,
   type LegiscanPerson,
+  type LegiscanMasterListEntry,
 } from '../_shared/legiscanClient.ts';
 import { mapLegiscanStatus } from '../_shared/legiscanStatusMap.ts';
 import type { LegiscanBillVoteSummary } from '../_shared/legiscanClient.ts';
@@ -645,7 +646,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             bill_number: entry.number,
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
-            last_action: fullBill.last_action,
+            last_action: entry.last_action,
             source_url: fullBill.state_link,
             pending_committee_id: fullBill.pending_committee_id ?? null,
             pending_committee_name: fullBill.committee?.name ?? null,
@@ -663,7 +664,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             introduced_date: getIntroducedDate(fullBill.progress),
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
-            last_action: fullBill.last_action,
+            last_action: entry.last_action,
             source_url: fullBill.state_link,
             pending_committee_id: fullBill.pending_committee_id ?? null,
             pending_committee_name: fullBill.committee?.name ?? null,
@@ -834,6 +835,22 @@ export const MAX_BACKFILL_BATCH_LIMIT = 25;
 async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClient>, limit: number) {
   const t0 = Date.now();
 
+  // last_action/last_action_date only exist on getMasterList's entry shape,
+  // not on getBill's (see legiscanClient.ts: LegiscanBill has no such
+  // fields) — fetched once per invocation, not per candidate, since it's a
+  // single extra API call regardless of batch size.
+  const sessions = await getSessionList('PA');
+  const currentSession = sessions.find((s) => s.prior === 0 && s.sine_die === 0) ?? sessions[0];
+  if (!currentSession) {
+    throw new Error('No PA session found via getSessionList');
+  }
+  const masterList = await getMasterList(currentSession.session_id);
+  const masterListByBillId = new Map<string, LegiscanMasterListEntry>();
+  for (const entry of masterList) {
+    masterListByBillId.set(String(entry.bill_id), entry);
+  }
+  const tMasterList = Date.now();
+
   const { count: totalRemaining, error: countErr } = await admin
     .from('bill_external_refs')
     .select('bill_id', { count: 'exact', head: true })
@@ -858,11 +875,16 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
     try {
       const fullBill = await getBill(Number(ref.external_bill_id));
       const { reportedFromCommitteeAt, diedInCommittee } = computeCommitteeStatus(fullBill.progress);
+      // A candidate not found in the current master list (bill archived/
+      // removed from LegiScan's active session listing) writes null rather
+      // than erroring or skipping the candidate — every other field here
+      // still comes from the live getBill() fetch.
+      const masterListEntry = masterListByBillId.get(ref.external_bill_id);
 
       const billUpdate: Record<string, unknown> = {
         reported_from_committee_at: reportedFromCommitteeAt,
         last_status_change_at: fullBill.status_date,
-        last_action: fullBill.last_action,
+        last_action: masterListEntry?.last_action ?? null,
         source_url: fullBill.state_link,
         pending_committee_id: fullBill.pending_committee_id ?? null,
         pending_committee_name: fullBill.committee?.name ?? null,
@@ -892,7 +914,7 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
   const remaining = Math.max((totalRemaining ?? 0) - updated, 0);
 
   console.log(
-    `backfillCommitteeStatus timing: count+candidates=${tCandidates - t0}ms, ` +
+    `backfillCommitteeStatus timing: getMasterList=${tMasterList - t0}ms, count+candidates=${tCandidates - tMasterList}ms, ` +
     `batch-processing(${candidates?.length ?? 0})=${tDone - tCandidates}ms, total=${tDone - t0}ms`
   );
   console.log(
