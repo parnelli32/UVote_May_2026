@@ -97,6 +97,7 @@ export function runFormatGate(summary) {
     sectionCount: sections.length,
     sections,
     wordCount: coreWords,
+    partsOneToFourWordCount: partsOneToFourWords,
     hasDetail: detail !== null,
     detailWordCount: detailWords,
     warnings,
