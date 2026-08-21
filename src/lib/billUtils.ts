@@ -117,17 +117,19 @@ export function getSummaryPreview(
     .trim();
 }
 
-/** Marker separating the mandatory four-part core from optional expandable
- *  detail within `summary`. Used only for bills complex enough to need
- *  supplementary content beyond the ~120-180 word core (itemized
- *  appropriations lines, extended sourcing/attribution, additional context)
- *  — most bills never include it, and `splitSummaryCoreAndDetail` treats an
- *  absent marker as "the whole string is core, no detail," so every summary
- *  generated before this convention existed keeps rendering unchanged.
- *  Must be split off *before* `parseSummaryIntoSections` runs: that parser's
- *  final section capture is non-greedy with no terminator other than
- *  end-of-string, so unsplit detail text would otherwise be silently
- *  absorbed into Part 4.
+/** Marker separating the mandatory five-part core (What this bill does, Who
+ *  it affects, If it passes, If it doesn't pass, Key Question(s)) from
+ *  optional expandable detail within `summary`. Used only for bills complex
+ *  enough to need supplementary content beyond the ~120-180 word core
+ *  (itemized appropriations lines, extended sourcing/attribution, additional
+ *  context) — most bills never include it, and `splitSummaryCoreAndDetail`
+ *  treats an absent marker as "the whole string is core, no detail," so
+ *  every summary generated before this convention existed keeps rendering
+ *  unchanged. Must be split off *before* `parseSummaryIntoSections` runs:
+ *  that parser's final section capture is non-greedy with no terminator
+ *  other than end-of-string, so unsplit detail text would otherwise be
+ *  silently absorbed into Part 5. Key Question(s) is mandatory core content
+ *  — it must never be pushed into the expandable-detail suffix.
  */
 export const SUMMARY_DETAIL_MARKER = '[[READ MORE]]';
 
@@ -147,12 +149,16 @@ export function splitSummaryCoreAndDetail(
   return { core, detail: detail || null };
 }
 
-/** Parse the summary into up to 4 named sections.
+/** Parse the summary into up to 5 named sections.
  *  Sections are split on lines that look like "1.", "2.", numbered headings,
  *  or the exact section labels. Falls back to single block under section 1.
  *  Callers with a full `summary` string (which may carry an expandable-detail
  *  suffix) must call `splitSummaryCoreAndDetail` first and pass its `core` —
  *  this function does not do that split itself.
+ *  The 5th section, Key Question(s), has no fixed label — its label is
+ *  computed from its own text's `?` count (singular "Key question" for
+ *  exactly one, plural "Key questions" otherwise) rather than a static
+ *  entry in SECTION_LABELS.
  */
 export type SummarySection = {
   label: string;
@@ -165,6 +171,14 @@ const SECTION_LABELS = [
   'If it passes',
   "If it doesn't pass",
 ];
+
+function labelForSection(index: number, text: string): string {
+  if (index === 4) {
+    const questionCount = (text.match(/\?/g) ?? []).length;
+    return questionCount === 1 ? 'Key question' : 'Key questions';
+  }
+  return SECTION_LABELS[index] ?? `Section ${index + 1}`;
+}
 
 export function parseSummaryIntoSections(
   summary: string | null | undefined,
@@ -186,31 +200,27 @@ export function parseSummaryIntoSections(
         .trim();
       if (text) {
         built.push({
-          label:
-            SECTION_LABELS[i] ??
-            `Section ${i + 1}`,
+          label: labelForSection(i, text),
           text,
         });
       }
     });
     if (built.length > 0) {
-      return built.slice(0, 4);
+      return built.slice(0, 5);
     }
   }
   // Option A (primary format):
-  // "1. text 2. text 3. text 4. text"
+  // "1. text 2. text 3. text 4. text 5. text"
   // Split on inline numbered markers.
   const matches = [
     ...raw.matchAll(
-      /(?:^|\s+)[1-4]\.\s+([\s\S]*?)(?=\s+[1-4]\.\s|$)/g,
+      /(?:^|\s+)[1-5]\.\s+([\s\S]*?)(?=\s+[1-5]\.\s|$)/g,
     ),
   ];
   if (matches.length > 0) {
-    return matches.slice(0, 4).map(
+    return matches.slice(0, 5).map(
       (m, i) => ({
-        label:
-          SECTION_LABELS[i] ??
-          `Section ${i + 1}`,
+        label: labelForSection(i, m[1].trim()),
         text: m[1].trim(),
       }),
     );
