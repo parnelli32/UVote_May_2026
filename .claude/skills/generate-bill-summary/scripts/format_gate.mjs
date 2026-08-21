@@ -13,13 +13,14 @@
 //   node --experimental-strip-types format_gate.mjs --file path/to/summary.txt
 //   echo "<summary text>" | node --experimental-strip-types format_gate.mjs
 //
-// Exit code 0 = pass (exactly 4 non-empty sections in the mandatory core),
-// 1 = fail. If the input carries a `[[READ MORE]]`-delimited expandable
-// detail suffix (see splitSummaryCoreAndDetail in billUtils.ts), that detail
-// is split off first — the 4-section/word-count gate applies to the
-// mandatory core alone, matching the frontend's own split-before-parse
-// requirement (the real parser's final section capture would otherwise
-// silently swallow the marker and all detail text into Part 4).
+// Exit code 0 = pass (exactly 5 non-empty sections in the mandatory core,
+// the 5th being Key Question(s)), 1 = fail. If the input carries a
+// `[[READ MORE]]`-delimited expandable detail suffix (see
+// splitSummaryCoreAndDetail in billUtils.ts), that detail is split off first
+// — the 5-section/word-count gate applies to the mandatory core alone,
+// matching the frontend's own split-before-parse requirement (the real
+// parser's final section capture would otherwise silently swallow the
+// marker and all detail text into Part 5).
 
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -32,35 +33,62 @@ function wordCount(text) {
 }
 
 /** Runs the real parser and applies the deterministic pass/fail gate:
- *  exactly 4 non-empty sections in the mandatory core (expandable detail,
- *  if present, is split off first and reported separately). */
+ *  exactly 5 non-empty sections in the mandatory core — the four original
+ *  parts plus Key Question(s) — (expandable detail, if present, is split
+ *  off first and reported separately). */
 export function runFormatGate(summary) {
   const { core, detail } = splitSummaryCoreAndDetail(summary);
   const sections = parseSummaryIntoSections(core);
   const nonEmpty = sections.every((s) => s.text.trim().length > 0);
-  const pass = sections.length === 4 && nonEmpty;
+  const pass = sections.length === 5 && nonEmpty;
   const coreWords = wordCount(core ?? '');
   const detailWords = detail ? wordCount(detail) : 0;
 
   const warnings = [];
-  const hasFifthMarker = /(?:^|\s)5\.\s/.test((core ?? '').trim());
-  if (hasFifthMarker) {
+  const hasSixthMarker = /(?:^|\s)6\.\s/.test((core ?? '').trim());
+  if (hasSixthMarker) {
     warnings.push(
-      "A '5.' marker was detected in the input. The real parser has no 5th " +
+      "A '6.' marker was detected in the input. The real parser has no 6th " +
       'section: depending on exact spacing this content is silently absorbed ' +
-      "into section 4's text (confirmed empirically — see the skill's test " +
-      'suite) rather than causing an error. Never emit a 5-marker summary; ' +
-      "this warning exists to catch it if the generation step accidentally does."
+      "into section 5's text (same mechanism previously observed for a stray " +
+      "'5.' marker against the 4-section parser — see the skill's test suite) " +
+      'rather than causing an error. Never emit a 6-marker summary; this ' +
+      'warning exists to catch it if the generation step accidentally does.'
     );
   }
-  if (pass && (coreWords < 100 || coreWords > 220)) {
+  if (pass) {
+    const keyQuestionText = sections[4].text;
+    const questionMarkCount = (keyQuestionText.match(/\?/g) ?? []).length;
+    if (questionMarkCount === 0) {
+      warnings.push(
+        'Section 5 (Key Question(s)) contains no literal \'?\' — every Key ' +
+        'Question(s) section must pose at least one actual question, not a ' +
+        'restatement of Part 1 or other declarative content.'
+      );
+    } else if (questionMarkCount > 5) {
+      warnings.push(
+        `Section 5 (Key Question(s)) contains ${questionMarkCount} '?' — ` +
+        'above the hard ceiling of 5 questions per SKILL.md Step 7.6. ' +
+        'Consolidate to the most load-bearing, genuinely distinct axes.'
+      );
+    }
+  }
+  // The 120-180 word soft target is scoped to Parts 1-4 only (matches the
+  // product target displayed in BillsTab.tsx:244) — Part 5 (Key
+  // Question(s)) is deliberately excluded from this check. A modest total
+  // overage from adding Key Question(s) content is expected and healthy,
+  // the same tolerance already granted under Criterion 9.
+  const partsOneToFourWords = pass
+    ? sections.slice(0, 4).reduce((sum, s) => sum + wordCount(s.text), 0)
+    : 0;
+  if (pass && (partsOneToFourWords < 100 || partsOneToFourWords > 220)) {
     warnings.push(
-      `Core word count (${coreWords}) is well outside the 120-180 soft target. ` +
+      `Parts 1-4 word count (${partsOneToFourWords}) is well outside the 120-180 soft target. ` +
       'Confirm this is proportionate to the bill\'s actual complexity (see ' +
       'Criterion 9 in SKILL.md), not padding or unwarranted truncation. If the ' +
       'bill genuinely needs more room, move the supplementary material into ' +
       "expandable detail (a '[[READ MORE]]' suffix) rather than inflating the " +
-      'mandatory core — the core alone must satisfy all 9 rubric criteria.'
+      'mandatory core — Parts 1-4 alone must satisfy all 9 rubric criteria.'
     );
   }
 
