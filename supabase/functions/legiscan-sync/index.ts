@@ -645,6 +645,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             bill_number: entry.number,
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
+            last_action: fullBill.last_action,
             source_url: fullBill.state_link,
             pending_committee_id: fullBill.pending_committee_id ?? null,
             pending_committee_name: fullBill.committee?.name ?? null,
@@ -662,6 +663,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             introduced_date: getIntroducedDate(fullBill.progress),
             reported_from_committee_at: reportedFromCommitteeAt,
             last_status_change_at: fullBill.status_date,
+            last_action: fullBill.last_action,
             source_url: fullBill.state_link,
             pending_committee_id: fullBill.pending_committee_id ?? null,
             pending_committee_name: fullBill.committee?.name ?? null,
@@ -860,6 +862,7 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
       const billUpdate: Record<string, unknown> = {
         reported_from_committee_at: reportedFromCommitteeAt,
         last_status_change_at: fullBill.status_date,
+        last_action: fullBill.last_action,
         source_url: fullBill.state_link,
         pending_committee_id: fullBill.pending_committee_id ?? null,
         pending_committee_name: fullBill.committee?.name ?? null,
