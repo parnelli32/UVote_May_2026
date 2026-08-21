@@ -68,16 +68,18 @@ export function runFormatGate(summary) {
     } else if (questionMarkCount > 5) {
       warnings.push(
         `Section 5 (Key Question(s)) contains ${questionMarkCount} '?' — ` +
-        'above the hard ceiling of 5 questions per SKILL.md Step 7.6. ' +
+        'above the hard ceiling of 5 questions per SKILL.md Step 7.5. ' +
         'Consolidate to the most load-bearing, genuinely distinct axes.'
       );
     }
   }
   // The 120-180 word soft target is scoped to Parts 1-4 only (matches the
-  // product target displayed in BillsTab.tsx:244) — Part 5 (Key
-  // Question(s)) is deliberately excluded from this check. A modest total
-  // overage from adding Key Question(s) content is expected and healthy,
-  // the same tolerance already granted under Criterion 9.
+  // product target displayed by BillsTab.tsx's Summary field label, which
+  // computes the same Parts-1-4 count via its own partsOneToFourWordCount
+  // helper) — Part 5 (Key Question(s)) is deliberately excluded from this
+  // check. A modest total overage from adding Key Question(s) content is
+  // expected and healthy, the same tolerance already granted under
+  // Criterion 9.
   const partsOneToFourWords = pass
     ? sections.slice(0, 4).reduce((sum, s) => sum + wordCount(s.text), 0)
     : 0;

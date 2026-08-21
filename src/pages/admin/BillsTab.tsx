@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { logError } from '../../lib/errorLogger';
 import { useAuth } from '../../context/AuthContext';
 import { extractMsg, FormField, Spinner, ConfirmModal, inputStyle } from './AdminShared';
-import { BILL_TOPICS } from '../../lib/billUtils';
+import { BILL_TOPICS, parseSummaryIntoSections, splitSummaryCoreAndDetail } from '../../lib/billUtils';
 import { formatNumber } from '../../lib/formatNumber';
 import type { Bill, Representative, LegislativeBody } from '../../lib/types';
 
@@ -46,6 +46,15 @@ function statusLabel(status: string) {
 
 function wordCount(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Mirrors format_gate.mjs's partsOneToFourWordCount: the 120-180 target is
+// scoped to Parts 1-4 only, deliberately excluding Part 5 (Key Question(s))
+// so it doesn't create pressure to write weaker Parts 1-4 to make room.
+function partsOneToFourWordCount(summary: string): number {
+  const { core } = splitSummaryCoreAndDetail(summary);
+  const sections = parseSummaryIntoSections(core);
+  return sections.slice(0, 4).reduce((sum, s) => sum + wordCount(s.text), 0);
 }
 
 export function BillsTab({
@@ -307,7 +316,7 @@ export function BillsTab({
               <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 style={inputStyle} placeholder="Bill title" />
             </FormField>
-            <FormField label={`Summary * — ${wordCount(form.summary)} words (target 120–180)`}>
+            <FormField label={`Summary * — ${partsOneToFourWordCount(form.summary)} words (target 120–180)`}>
               <textarea value={form.summary} onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
                 rows={5} style={{ ...inputStyle, resize: 'vertical' }}
                 placeholder="What it does / Who it affects / If it passes / If it doesn't pass." />
