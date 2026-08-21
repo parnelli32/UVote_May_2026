@@ -75,6 +75,7 @@ export type Database = {
           superseded_by?: string | null;
           superseded_reason?: string | null;
           last_status_change_at?: string | null;
+          last_action?: string | null;
           source_url?: string | null;
           pending_committee_id?: number | null;
           pending_committee_name?: string | null;
