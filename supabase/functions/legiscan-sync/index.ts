@@ -598,6 +598,24 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
   const repRefsMap = await fetchAllLegiscanRepRefs(admin);
   const tBulkFetch = Date.now();
 
+  // pending_review means a human-written summary is awaiting review before
+  // the bill is votable again (see generate-bill-summary skill) — a status
+  // recomputed fresh from LegiScan below must never silently clobber that
+  // hold. Bulk-fetched once so the per-bill loop can check it with no extra
+  // round trip; a bill discovered mid-loop via the orphan self-heal path
+  // (not yet in existingRefs at fetch time) is looked up individually there.
+  const existingStatuses = new Map<string, string>();
+  {
+    const existingBillIds = [...existingRefs.values()].map((r) => r.bill_id);
+    const pageSize = 1000;
+    for (let i = 0; i < existingBillIds.length; i += pageSize) {
+      const page = existingBillIds.slice(i, i + pageSize);
+      const { data, error } = await admin.from('bills').select('bill_id, status').in('bill_id', page);
+      if (error) throw error;
+      for (const row of data ?? []) existingStatuses.set(row.bill_id, row.status);
+    }
+  }
+
   let skippedResolutions = 0;
   const changedEntries: typeof masterList = [];
   for (const entry of masterList) {
@@ -636,22 +654,27 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
 
       let billId = existingRef?.bill_id;
       if (billId) {
-        await admin
-          .from('bills')
-          .update({
-            title: fullBill.title,
-            summary: fullBill.description,
-            status,
-            legislative_body_id: bodyId,
-            bill_number: entry.number,
-            reported_from_committee_at: reportedFromCommitteeAt,
-            last_status_change_at: fullBill.status_date,
-            last_action: entry.last_action,
-            source_url: fullBill.state_link,
-            pending_committee_id: fullBill.pending_committee_id ?? null,
-            pending_committee_name: fullBill.committee?.name ?? null,
-          })
-          .eq('bill_id', billId);
+        const billUpdate: Record<string, unknown> = {
+          title: fullBill.title,
+          summary: fullBill.description,
+          legislative_body_id: bodyId,
+          bill_number: entry.number,
+          reported_from_committee_at: reportedFromCommitteeAt,
+          last_status_change_at: fullBill.status_date,
+          last_action: entry.last_action,
+          source_url: fullBill.state_link,
+          pending_committee_id: fullBill.pending_committee_id ?? null,
+          pending_committee_name: fullBill.committee?.name ?? null,
+        };
+        // A pending_review bill is awaiting human review of its
+        // AI-generated summary before it's votable again — a fresh sync
+        // must never silently revert that hold back to an active/failed
+        // status, even when the bill genuinely died in committee. Every
+        // other field above still refreshes normally.
+        if (existingStatuses.get(billId) !== 'pending_review') {
+          billUpdate.status = status;
+        }
+        await admin.from('bills').update(billUpdate).eq('bill_id', billId);
       } else {
         const { data: newBill, error: billErr } = await admin
           .from('bills')
@@ -702,7 +725,7 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
           if (billErr?.code === '23505' && billErr.message?.includes('bill_number')) {
             const { data: existingByNumber, error: lookupErr } = await admin
               .from('bills')
-              .select('bill_id')
+              .select('bill_id, status')
               .eq('bill_number', entry.number)
               .eq('legislative_body_id', bodyId)
               .maybeSingle();
@@ -718,16 +741,17 @@ async function syncBills(admin: ReturnType<typeof createAdminClient>, sessionId:
             }
             console.warn(`Self-healed orphaned bill ${entry.number}: adopting existing bill_id ${existingByNumber.bill_id}`);
             billId = existingByNumber.bill_id;
-            await admin
-              .from('bills')
-              .update({
-                title: fullBill.title,
-                summary: fullBill.description,
-                status,
-                legislative_body_id: bodyId,
-                reported_from_committee_at: reportedFromCommitteeAt,
-              })
-              .eq('bill_id', billId);
+            const orphanUpdate: Record<string, unknown> = {
+              title: fullBill.title,
+              summary: fullBill.description,
+              legislative_body_id: bodyId,
+              reported_from_committee_at: reportedFromCommitteeAt,
+            };
+            // Same pending_review hold as the regular update path above.
+            if (existingByNumber.status !== 'pending_review') {
+              orphanUpdate.status = status;
+            }
+            await admin.from('bills').update(orphanUpdate).eq('bill_id', billId);
           } else {
             console.error(`Failed to insert bill ${entry.number} (legiscan bill_id ${entry.bill_id}):`, billErr);
             failures++;
@@ -889,7 +913,18 @@ async function backfillCommitteeStatus(admin: ReturnType<typeof createAdminClien
         pending_committee_id: fullBill.pending_committee_id ?? null,
         pending_committee_name: fullBill.committee?.name ?? null,
       };
-      if (diedInCommittee) billUpdate.status = 'failed';
+      if (diedInCommittee) {
+        // Same pending_review hold as syncBills — a bill awaiting human
+        // review of its AI-generated summary must never be silently
+        // reverted, even by "died in committee" during backfill.
+        const { data: currentBill, error: statusErr } = await admin
+          .from('bills')
+          .select('status')
+          .eq('bill_id', ref.bill_id)
+          .single();
+        if (statusErr) throw statusErr;
+        if (currentBill.status !== 'pending_review') billUpdate.status = 'failed';
+      }
 
       const { error: billUpdateErr } = await admin.from('bills').update(billUpdate).eq('bill_id', ref.bill_id);
       if (billUpdateErr) throw billUpdateErr;
