@@ -149,7 +149,7 @@ Note the range: supersession isn't limited to bills that stalled — SB186 genui
 
 **If negative** (the ordinary case): note `Supersession check: not superseded` in the self-report and leave `superseded_at`/`superseded_by`/`superseded_reason` NULL in the SQL template. A bill still working through its own normal chamber-to-chamber path, however far along, is not superseded.
 
-### Step 7 — Draft the four-part `summary`
+### Step 7 — Draft Parts 1-4 of the `summary`
 
 Grade 8 reading level, plain prose, no markdown/bullets/headers (the renderer displays `section.text` as a literal React text child — markdown syntax would show as literal asterisks/dashes on screen). Authoring rules, all enforced here:
 
