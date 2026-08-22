@@ -41,6 +41,32 @@ type BillDetailPageProps = {
   navProps?: NavProps;
 };
 
+/** Display-only split of the Key Question(s) section's already-parsed text into
+ *  one chunk per question, for numbered rendering. Splits on sentence-ending
+ *  "?" (keeping it attached to its chunk); any trailing text after the last
+ *  "?" (a malformed/partial section) is appended to the last chunk rather than
+ *  dropped or rendered bare. Never touches the stored `summary` text itself —
+ *  see `parseSummaryIntoSections` in billUtils.ts, whose section-boundary regex
+ *  this must not collide with.
+ */
+function splitKeyQuestions(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  const matches = [...trimmed.matchAll(/[\s\S]*?\?/g)];
+  if (matches.length === 0) return [trimmed];
+  const chunks = matches.map((m) => m[0].trim()).filter(Boolean);
+  const lastMatch = matches[matches.length - 1];
+  const trailing = trimmed.slice((lastMatch.index ?? 0) + lastMatch[0].length).trim();
+  if (trailing) {
+    if (chunks.length > 0) {
+      chunks[chunks.length - 1] = `${chunks[chunks.length - 1]} ${trailing}`;
+    } else {
+      chunks.push(trailing);
+    }
+  }
+  return chunks;
+}
+
 export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBlock, onNavigateToHowItWorks, onNavigateToAbout, onNavigateToElectionCenter, onSignUp, navProps }: BillDetailPageProps) {
   const { user, profile, legislativeBodies } = useAuth();
 
@@ -522,13 +548,31 @@ export function BillDetailPage({ billId, onNavigateToRep, onNavigateToVotingBloc
                 }}>
                   {section.label}
                 </span>
-                <span style={{
-                  display: 'block',
-                  fontSize: 13, color: '#0f1724', lineHeight: 1.65,
-                  whiteSpace: 'normal', wordWrap: 'break-word',
-                }}>
-                  {section.text}
-                </span>
+                {i === 4 ? (
+                  <div>
+                    {splitKeyQuestions(section.text).map((question, qIndex) => (
+                      <span
+                        key={qIndex}
+                        style={{
+                          display: 'block',
+                          fontSize: 13, color: '#0f1724', lineHeight: 1.65,
+                          wordWrap: 'break-word',
+                          marginTop: qIndex > 0 ? 6 : 0,
+                        }}
+                      >
+                        {`${qIndex + 1}. ${question}`}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{
+                    display: 'block',
+                    fontSize: 13, color: '#0f1724', lineHeight: 1.65,
+                    whiteSpace: 'normal', wordWrap: 'break-word',
+                  }}>
+                    {section.text}
+                  </span>
+                )}
               </div>
             ))}
 
